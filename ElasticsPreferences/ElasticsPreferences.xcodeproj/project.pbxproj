@@ -17,8 +17,6 @@
 		C31FFAF513DECA2300F5D20B /* Account.m in Sources */ = {isa = PBXBuildFile; fileRef = C31FFAF413DECA2300F5D20B /* Account.m */; };
 		C332439C14D818BF00A21AB1 /* PreferencesRegions.png in Resources */ = {isa = PBXBuildFile; fileRef = C332439B14D818BF00A21AB1 /* PreferencesRegions.png */; };
 		C33E1F0B14C6C51B0071C50D /* SshPortValueTransformer.m in Sources */ = {isa = PBXBuildFile; fileRef = C33E1F0A14C6C51B0071C50D /* SshPortValueTransformer.m */; };
-		C33E1F0F14C6D1660071C50D /* RegexKitLite.m in Sources */ = {isa = PBXBuildFile; fileRef = C33E1F0E14C6D1660071C50D /* RegexKitLite.m */; };
-		C33E1F1114C6D26E0071C50D /* libicucore.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C33E1F1014C6D26E0071C50D /* libicucore.dylib */; };
 		C33F79B315FF4D020085CCE2 /* Icon.iconset in Resources */ = {isa = PBXBuildFile; fileRef = C33F79B215FF4D020085CCE2 /* Icon.iconset */; };
 		C34FAA98143C4C7C00F607DD /* Constants.m in Sources */ = {isa = PBXBuildFile; fileRef = C34FAA97143C4C7C00F607DD /* Constants.m */; };
 		C3603DCB12DC6D0B00B13219 /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = C3603DCA12DC6D0B00B13219 /* Credits.html */; };
@@ -53,9 +51,6 @@
 		C332439B14D818BF00A21AB1 /* PreferencesRegions.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = PreferencesRegions.png; sourceTree = "<group>"; };
 		C33E1F0914C6C51B0071C50D /* SshPortValueTransformer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SshPortValueTransformer.h; sourceTree = "<group>"; };
 		C33E1F0A14C6C51B0071C50D /* SshPortValueTransformer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SshPortValueTransformer.m; sourceTree = "<group>"; };
-		C33E1F0D14C6D1660071C50D /* RegexKitLite.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RegexKitLite.h; path = ../RegexKitLite/RegexKitLite.h; sourceTree = "<group>"; };
-		C33E1F0E14C6D1660071C50D /* RegexKitLite.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = RegexKitLite.m; path = ../RegexKitLite/RegexKitLite.m; sourceTree = "<group>"; };
-		C33E1F1014C6D26E0071C50D /* libicucore.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libicucore.dylib; path = usr/lib/libicucore.dylib; sourceTree = SDKROOT; };
 		C33F79B215FF4D020085CCE2 /* Icon.iconset */ = {isa = PBXFileReference; lastKnownFileType = folder.iconset; name = Icon.iconset; path = ../Icon.iconset; sourceTree = "<group>"; };
 		C34FAA96143C4C7C00F607DD /* Constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Constants.h; path = ../../Classes/Constants.h; sourceTree = "<group>"; };
 		C34FAA97143C4C7C00F607DD /* Constants.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Constants.m; path = ../../Classes/Constants.m; sourceTree = "<group>"; };
@@ -85,7 +80,6 @@
 			files = (
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
 				C3CE00A112D739C4006E87EF /* Security.framework in Frameworks */,
-				C33E1F1114C6D26E0071C50D /* libicucore.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -117,7 +111,6 @@
 		1058C7A0FEA54F0111CA2CBB /* Linked Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				C33E1F1014C6D26E0071C50D /* libicucore.dylib */,
 				29B97325FDCFA39411CA2CEA /* Foundation.framework */,
 				29B97324FDCFA39411CA2CEA /* AppKit.framework */,
 				1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */,
@@ -139,7 +132,6 @@
 			children = (
 				080E96DDFE201D6D7F000001 /* Classes */,
 				29B97315FDCFA39411CA2CEA /* Other Sources */,
-				C33E1F0C14C6D1430071C50D /* RegexKitLite */,
 				29B97317FDCFA39411CA2CEA /* Resources */,
 				29B97323FDCFA39411CA2CEA /* Frameworks */,
 				19C28FACFE9D520D11CA2CBB /* Products */,
@@ -177,15 +169,6 @@
 				1058C7A0FEA54F0111CA2CBB /* Linked Frameworks */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		C33E1F0C14C6D1430071C50D /* RegexKitLite */ = {
-			isa = PBXGroup;
-			children = (
-				C33E1F0D14C6D1660071C50D /* RegexKitLite.h */,
-				C33E1F0E14C6D1660071C50D /* RegexKitLite.m */,
-			);
-			name = RegexKitLite;
 			sourceTree = "<group>";
 		};
 		C3CEFE7312D72EA1006E87EF /* Value Transformers */ = {
@@ -296,7 +279,6 @@
 				C31FFAF513DECA2300F5D20B /* Account.m in Sources */,
 				C34FAA98143C4C7C00F607DD /* Constants.m in Sources */,
 				C33E1F0B14C6C51B0071C50D /* SshPortValueTransformer.m in Sources */,
-				C33E1F0F14C6D1660071C50D /* RegexKitLite.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

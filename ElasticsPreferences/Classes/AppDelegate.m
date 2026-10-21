@@ -12,7 +12,6 @@
 #import "RefreshIntervalLabelValueTransformer.h"
 #import "SshPortValueTransformer.h"
 #import "Account.h"
-#import "RegexKitLite.h"
 
 enum {
     kGeneralPaneIndex,
@@ -272,7 +271,8 @@ static NSString *const kElasticsSendFeedbackURL = @"mailto:support@tundrabot.com
         }
         else if (obj == _sshPortField || obj == _accountPanelSshPortField) {
             NSString *value = obj.stringValue;
-            if (![value isMatchedByRegex:@"^[\\d]{0,5}$"]) {
+            NSPredicate *portPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@", @"[\\d]{0,5}"];
+            if (![portPredicate evaluateWithObject:value]) {
                 [obj setStringValue:_lastValidSshPortValue ? _lastValidSshPortValue : @""];
                 NSBeep();
             }
