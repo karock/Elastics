@@ -9,6 +9,8 @@
 #import "Account.h"
 #import "Constants.h"
 
+static NSString *AccountMainAppBundlePath(void);
+
 NSString *const kAccountDidChangeNotification	= @"kAccountsDidChangeNotification";
 
 @interface Account ()
@@ -188,18 +190,29 @@ sshPrivateKeyFile:(NSString *)sshPrivateKeyFile
 		// make list of trusted applications
 		SecTrustedApplicationRef preferencesApp, mainApp;
 		
-		// get path to main application bundle
-		NSString *mainAppBundlePath = [[NSWorkspace sharedWorkspace] absolutePathForAppBundleWithIdentifier:kElasticsBundleIdentifier];
+		// trust this app and the Elastics.app it belongs to (found by path, not by
+		// asking Launch Services for "an app with this bundle ID", which could be any
+		// copy or impostor registered under that ID)
+		NSString *mainAppBundlePath = AccountMainAppBundlePath();
 		
 		status = SecTrustedApplicationCreateFromPath(NULL, &preferencesApp);
 		if (status != noErr)
             return status;
 
-		status = SecTrustedApplicationCreateFromPath([mainAppBundlePath UTF8String], &mainApp);
-		if (status != noErr)
-            return status;
-
-		trustedApplications = [NSArray arrayWithObjects:(id)preferencesApp, (id)mainApp, nil];
+		if (mainAppBundlePath) {
+			status = SecTrustedApplicationCreateFromPath([mainAppBundlePath fileSystemRepresentation], &mainApp);
+			if (status != noErr) {
+				CFRelease(preferencesApp);
+				return status;
+			}
+			trustedApplications = [NSArray arrayWithObjects:(id)preferencesApp, (id)mainApp, nil];
+			CFRelease(mainApp);
+		}
+		else {
+			// e.g. Preferences run on its own: the main app will ask for access instead
+			trustedApplications = [NSArray arrayWithObject:(id)preferencesApp];
+		}
+		CFRelease(preferencesApp);
 		
 		// create an access object
 		status = SecAccessCreate((CFStringRef)kElasticsSecServiceName, (CFArrayRef)trustedApplications, &accessRef);
@@ -347,6 +360,22 @@ sshPrivateKeyFile:(NSString *)sshPrivateKeyFile
 	return [NSString stringWithFormat:@"Elastics.%@", _accessKeyID];
 }
 
+
+// Path of the Elastics.app this code runs in: the app itself, or the app that
+// contains Elastics Preferences in Contents/Helpers. nil if neither applies.
+static NSString *AccountMainAppBundlePath(void)
+{
+	NSBundle *bundle = [NSBundle mainBundle];
+	if ([[bundle bundleIdentifier] isEqualToString:kElasticsBundleIdentifier])
+		return [bundle bundlePath];
+
+	// .../Elastics.app/Contents/Helpers/Elastics Preferences.app
+	NSString *candidate = [[[[bundle bundlePath] stringByDeletingLastPathComponent]
+							stringByDeletingLastPathComponent]
+						   stringByDeletingLastPathComponent];
+	NSBundle *mainAppBundle = [NSBundle bundleWithPath:candidate];
+	return [[mainAppBundle bundleIdentifier] isEqualToString:kElasticsBundleIdentifier] ? candidate : nil;
+}
 
 static NSString *const kAccountAttributeIDKey				= @"id";
 static NSString *const kAccountAttributeNameKey				= @"name";
