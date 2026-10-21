@@ -27,6 +27,7 @@
 	NSString			*_privateIpAddress;
 	NSString			*_ipAddress;
 	NSArray				*_tagSet;   // EC2Tag
+	NSArray				*_instanceGroupSet;   // EC2Group, security groups of the instance itself
 }
 
 @property (nonatomic, retain, readonly) NSString *instanceId;
@@ -43,9 +44,11 @@
 @property (nonatomic, retain, readonly) NSArray *tagSet;
 
 // List of Security Groups from owning reservation
+// Security groups: the instance's own groupSet (the only one filled in for VPC
+// instances in current API versions), falling back to its reservation's groupSet.
 - (NSArray *)groupSet;
 
-// The groupId of first security group from the security groups list
+// Security group names (IDs where a group has no name), comma-separated
 - (NSString *)securityGroup;
 
 // Returns value of "Name" tag if present, nil otherwise

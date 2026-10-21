@@ -13,7 +13,7 @@
 #define                AWSApiDefaultRegion		kAWSUSEastRegion
 static NSString *const AWSApiDefaultPath		= @"/";
 static NSString *const AWSApiDefaultMethod		= @"GET";
-static NSString *const AWSApiEC2Version			= @"2010-08-31";
+static NSString *const AWSApiEC2Version			= @"2016-11-15";
 static NSString *const AWSApiMonitoringVersion	= @"2010-08-01";
 
 // Request options keys
