@@ -14,7 +14,7 @@ Changes from Elastics 1.6:
 - AWS Signature Version 4, current EC2 API version, current region list
 - Instance details: lifecycle, state reason, private IP, storage (EBS volumes and
   instance store)
-- Instance search in the menu, with keyboard navigation
+- Instance search at the top of the menu (focused when the menu opens)
 - Dark Mode fixes and modern menu bar icon
 
 ## Building
