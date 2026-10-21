@@ -102,7 +102,6 @@ static NSFont *_messageItemFont;
 static NSFont *_labelColumnFont;
 static NSFont *_infoColumnFont;
 
-static NSDictionary *_statusItemAttributes;
 
 static NSDictionary *_titleAttributes;
 static NSDictionary *_taggedInstanceAttributes;
@@ -145,10 +144,6 @@ static NSImage *_brImage;
 	if (!_labelColumnFont)			_labelColumnFont = [[NSFont systemFontOfSize:11.0f] retain];
 	if (!_infoColumnFont)			_infoColumnFont = [[NSFont boldSystemFontOfSize:11.0f] retain];
 
-	if (!_statusItemAttributes)
-		_statusItemAttributes = [[NSDictionary dictionaryWithObjectsAndKeys:
-								  _statusItemFont, NSFontAttributeName,
-								  nil] retain];
 	if (!_titleAttributes)
 		_titleAttributes = [[NSDictionary dictionaryWithObjectsAndKeys:
 							 _titleColor, NSForegroundColorAttributeName,
@@ -193,7 +188,11 @@ static NSImage *_brImage;
 								  //infoParagraphStyle, NSParagraphStyleAttributeName,
 								  nil] retain];
 	
-	if (!_statusItemImage)		    _statusItemImage = [NSImage imageNamed:@"StatusItem"];
+	if (!_statusItemImage) {
+		// template image: the menu bar tints it for light/dark appearance and highlighting
+		_statusItemImage = [NSImage imageNamed:@"StatusItem"];
+		[_statusItemImage setTemplate:YES];
+	}
 	if (!_statusItemAlertImage)	    _statusItemAlertImage = [NSImage imageNamed:@"StatusItemAlert"];
 	
 	if (!_usImage)	                _usImage = [NSImage imageNamed:@"US"];
@@ -225,7 +224,11 @@ static NSImage *_brImage;
 
 	// set up status item
 	_statusItem = [[[NSStatusBar systemStatusBar] statusItemWithLength:NSVariableStatusItemLength] retain];
-	[_statusItem setImage:_statusItemImage];
+	NSStatusBarButton *statusButton = [_statusItem button];
+	[statusButton setImage:_statusItemImage];
+	[statusButton setImagePosition:NSImageLeft];
+	[statusButton setFont:_statusItemFont];
+	[statusButton setToolTip:@"Elastics"];
 	[_statusItem setMenu:_statusMenu];
 
 	// set up pasteboard
@@ -378,8 +381,8 @@ static NSImage *_brImage;
             
             [self addMenuActionItems];
             
-            [_statusItem setImage:_statusItemAlertImage];
-            [_statusItem setTitle:nil];
+            [[_statusItem button] setImage:_statusItemAlertImage];
+            [[_statusItem button] setTitle:@""];
         }
         else {
             // refresh finished successfully
@@ -417,13 +420,9 @@ static NSImage *_brImage;
                 [self addMenuActionItems];
             }
 
-            [_statusItem setImage:_statusItemImage];
-            
-            NSAttributedString *statusItemTitle = [[NSAttributedString alloc]
-                                                   initWithString:[NSString stringWithFormat:@"%zd", instancesCount]
-                                                   attributes:_statusItemAttributes];
-            [_statusItem setAttributedTitle:statusItemTitle];
-            [statusItemTitle release];
+            // plain title (font set on the button) so the menu bar picks the text color
+            [[_statusItem button] setImage:_statusItemImage];
+            [[_statusItem button] setTitle:[NSString stringWithFormat:@"%zd", instancesCount]];
         
             [_statusMenu setMinimumWidth:100];
         }
