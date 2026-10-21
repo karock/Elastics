@@ -41,12 +41,27 @@ static NSMutableDictionary *_s_awsRequestDefaultOptions;
 @property (nonatomic, retain) NSDate *finishedAt;
 
 - (NSDictionary *)parametersForAction:(NSString *)action method:(NSString *)method parameters:(NSDictionary *)parameters;
-- (void)requestThread:(id)object;
+- (void)currentConnectionDidFinishWithResult:(NSDictionary *)result;
 - (AWSResponse *)parseResponse;
 - (void)currentConnectionDidFinishLoading;
 - (void)currentConnectionDidFailWithError:(NSError *)error;
 
 @end
+
+// One shared session for all requests (ephemeral: no cookies or on-disk cache).
+static NSURLSession *AWSRequestURLSession(void)
+{
+	static NSURLSession *session = nil;
+	static dispatch_once_t once;
+	dispatch_once(&once, ^{
+		NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration ephemeralSessionConfiguration];
+		configuration.requestCachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
+		configuration.timeoutIntervalForRequest = 60.0;   // same as the old NSURLRequest default
+		configuration.timeoutIntervalForResource = 120.0; // give up on a request that keeps trickling
+		session = [[NSURLSession sessionWithConfiguration:configuration] retain];
+	});
+	return session;
+}
 
 @implementation AWSRequest
 
@@ -97,7 +112,6 @@ static NSMutableDictionary *_s_awsRequestDefaultOptions;
 - (void)dealloc
 {
 	TBRelease(_options);
-	TBRelease(_connectionLock);
 	TBRelease(_responseInfo);
 	TBRelease(_responseData);
 	TBRelease(_responseParser);
@@ -205,7 +219,7 @@ static NSMutableDictionary *_s_awsRequestDefaultOptions;
 	}
 }
 
-- (void)setResponseData:(NSMutableData *)responseData
+- (void)setResponseData:(NSData *)responseData
 {
 	if (_responseData != responseData) {
 		[_responseData release];
@@ -344,7 +358,7 @@ static NSMutableDictionary *_s_awsRequestDefaultOptions;
 			return FALSE;
 	}
 
-	self.responseData = [NSMutableData data];
+	self.responseData = [NSData data];
 	self.startedAt = [NSDate date];
 	self.finishedAt = nil;
 
@@ -389,9 +403,31 @@ static NSMutableDictionary *_s_awsRequestDefaultOptions;
 	if ([sessionToken length] > 0)
 		[request setValue:sessionToken forHTTPHeaderField:@"X-Amz-Security-Token"];
 
-	// start connection thread
-	[NSThread detachNewThreadSelector:@selector(requestThread:) toTarget:self withObject:request];
+	// start the request; the completion handler runs on the session's background queue,
+	// results are handed to the main thread in default and menu-tracking run loop modes
+	// so the status menu can update while it is open
+	NSArray *modes = [NSArray arrayWithObjects:NSDefaultRunLoopMode, NSEventTrackingRunLoopMode, nil];
+	NSURLSessionDataTask *task = [AWSRequestURLSession() dataTaskWithRequest:request
+														   completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+		if (error) {
+			[self performSelectorOnMainThread:@selector(currentConnectionDidFailWithError:)
+								   withObject:error
+								waitUntilDone:NO
+										modes:modes];
+		}
+		else {
+			NSDictionary *result = [NSDictionary dictionaryWithObjectsAndKeys:
+									response, @"response",
+									(data ? data : [NSData data]), @"data",
+									nil];
+			[self performSelectorOnMainThread:@selector(currentConnectionDidFinishWithResult:)
+								   withObject:result
+								waitUntilDone:NO
+										modes:modes];
+		}
+	}];
 	[request release];
+	[task resume];
 
 	// notify delegate that request started
 	[_delegate requestDidStartLoading:self];
@@ -411,78 +447,11 @@ static NSMutableDictionary *_s_awsRequestDefaultOptions;
 	return nil;
 }
 
-#pragma mark - Connection thread
-
-#define WAITING_FOR_CONNECTION			0
-#define DONE_WAITING_FOR_CONNECTION		1
-
-- (void)requestThread:(id)object
+- (void)currentConnectionDidFinishWithResult:(NSDictionary *)result
 {
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-
-	@try {
-		_connectionLock = [[NSConditionLock alloc] initWithCondition:WAITING_FOR_CONNECTION];
-        NSURLConnection *connection = [NSURLConnection connectionWithRequest:(NSURLRequest *)object delegate:self];
-        [connection start];
-
-		NSRunLoop *runLoop = [NSRunLoop currentRunLoop];
-		while ([runLoop runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]]) {
-			if ([_connectionLock tryLockWhenCondition:DONE_WAITING_FOR_CONNECTION]) {
-				break;
-			}
-		}
-	}
-	@finally {
-		[_connectionLock unlock];
-		TBRelease(_connectionLock);
-	}
-
-	[pool release];
-}
-
-- (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response
-{
-	self.responseInfo = (NSHTTPURLResponse *)response;
-//	TBTrace(@"%d - %@", [_responseInfo statusCode], [NSHTTPURLResponse localizedStringForStatusCode:[_responseInfo statusCode]]);
-}
-
-- (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data
-{
-	[_responseData appendData:data];
-}
-
-- (void)connectionDidFinishLoading:(NSURLConnection *)connection
-{
-	@try {
-//		[self performSelectorOnMainThread:@selector(currentConnectionDidFinishLoading)
-//							   withObject:nil
-//							waitUntilDone:NO];
-		[self performSelectorOnMainThread:@selector(currentConnectionDidFinishLoading)
-							   withObject:nil
-							waitUntilDone:NO
-									modes:[NSArray arrayWithObjects:NSDefaultRunLoopMode, NSEventTrackingRunLoopMode, nil]];
-	}
-	@finally {
-		[_connectionLock lock];
-		[_connectionLock unlockWithCondition:DONE_WAITING_FOR_CONNECTION];
-	}
-}
-
-- (void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error
-{
-	@try {
-//		[self performSelectorOnMainThread:@selector(currentConnectionDidFailWithError:)
-//							   withObject:error
-//							waitUntilDone:NO];
-		[self performSelectorOnMainThread:@selector(currentConnectionDidFailWithError:)
-							   withObject:error
-							waitUntilDone:NO
-									modes:[NSArray arrayWithObjects:NSDefaultRunLoopMode, NSEventTrackingRunLoopMode, nil]];
-	}
-	@finally {
-		[_connectionLock lock];
-		[_connectionLock unlockWithCondition:DONE_WAITING_FOR_CONNECTION];
-	}
+	self.responseInfo = (NSHTTPURLResponse *)[result objectForKey:@"response"];
+	self.responseData = [result objectForKey:@"data"];
+	[self currentConnectionDidFinishLoading];
 }
 
 - (void)currentConnectionDidFinishLoading

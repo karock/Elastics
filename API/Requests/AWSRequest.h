@@ -26,9 +26,8 @@ extern NSString *const kAWSUseSSLOption;
 @private
 	NSMutableDictionary		*_options;
 	id<AWSRequestDelegate>	_delegate;
-	NSConditionLock			*_connectionLock;
 	NSHTTPURLResponse		*_responseInfo;
-	NSMutableData			*_responseData;
+	NSData					*_responseData;
 	TBXML					*_responseParser;
 	AWSResponse				*_response;
 	AWSErrorResponse		*_errorResponse;
