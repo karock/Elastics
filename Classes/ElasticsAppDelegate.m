@@ -34,6 +34,8 @@ static const NSInteger kInstanceMenuItemTag = -100;
 - (void)applySearchFilter;
 - (BOOL)instance:(EC2Instance *)instance matchesSearchTerms:(NSArray *)terms;
 - (void)focusSearchField;
+- (void)installSearchKeyMonitor;
+- (void)removeSearchKeyMonitor;
 
 - (void)resetMenu;
 - (void)addMenuActionItems;
@@ -92,6 +94,7 @@ static const NSInteger kInstanceMenuItemTag = -100;
 	NSMenuItem		*_searchItem;       // always the first item of the status menu
 	NSSearchField	*_searchField;
 	NSMenuItem		*_noMatchesItem;    // shown when the search hides every instance
+	id				_searchKeyMonitor;  // local ⌘F monitor, installed while the status menu is open
 }
 
 @synthesize aboutPanel = _aboutPanel;
@@ -310,6 +313,7 @@ static NSImage *_brImage;
 	[_searchItem release];
 	[_searchField release];
 	[_noMatchesItem release];
+	[self removeSearchKeyMonitor];
 
 	[super dealloc];
 }
@@ -500,7 +504,7 @@ static NSImage *_brImage;
 
 	_searchField = [[NSSearchField alloc] initWithFrame:NSMakeRect(inset, 4.f, width - 2 * inset, 22.f)];
 	[_searchField setAutoresizingMask:NSViewWidthSizable];
-	[[_searchField cell] setPlaceholderString:@"Filter instances"];
+	[[_searchField cell] setPlaceholderString:@"Filter instances (\u2318F)"];
 	[[_searchField cell] setSendsWholeSearchString:NO];
 	[_searchField setDelegate:self];
 	[view addSubview:_searchField];
@@ -523,8 +527,52 @@ static NSImage *_brImage;
 - (void)focusSearchField
 {
 	NSWindow *window = [_searchField window];
-	if (window)
+	if (window) {
 		[window makeFirstResponder:_searchField];
+		[_searchField selectText:nil];   // like ⌘F elsewhere: select the query so typing replaces it
+	}
+}
+
+static BOOL ElasticsIsSearchShortcut(NSEvent *event)
+{
+	NSEventModifierFlags flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
+	return [event type] == NSEventTypeKeyDown
+		&& (flags & ~NSEventModifierFlagCapsLock) == NSEventModifierFlagCommand
+		&& [[event charactersIgnoringModifiers] caseInsensitiveCompare:@"f"] == NSOrderedSame;
+}
+
+// ⌘F while the menu is open puts the cursor back in the search field. An open menu
+// handles keys itself, so catch the shortcut both where it looks up key equivalents
+// (this delegate method) and with a local event monitor; whichever sees it first wins,
+// and focusing twice is harmless. The menus have no other key equivalents.
+- (BOOL)menuHasKeyEquivalent:(NSMenu *)menu forEvent:(NSEvent *)event target:(id *)target action:(SEL *)action
+{
+	if (ElasticsIsSearchShortcut(event))
+		[self focusSearchField];
+	return NO;
+}
+
+- (void)installSearchKeyMonitor
+{
+	if (_searchKeyMonitor)
+		return;
+
+	_searchKeyMonitor = [[NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown handler:^NSEvent *(NSEvent *event) {
+		if (ElasticsIsSearchShortcut(event)) {
+			[self focusSearchField];
+			return nil;
+		}
+		return event;
+	}] retain];
+}
+
+- (void)removeSearchKeyMonitor
+{
+	if (_searchKeyMonitor) {
+		[NSEvent removeMonitor:_searchKeyMonitor];
+		[_searchKeyMonitor release];
+		_searchKeyMonitor = nil;
+	}
 }
 
 - (void)controlTextDidChange:(NSNotification *)notification
@@ -1139,6 +1187,8 @@ static NSImage *_brImage;
 - (void)menuWillOpen:(NSMenu *)menu
 {
 	if (menu == _statusMenu) {
+		[self installSearchKeyMonitor];
+
 		// the menu's window exists only once tracking starts; focus the field on the next pass
 		[self performSelector:@selector(focusSearchField)
 				   withObject:nil
@@ -1152,6 +1202,8 @@ static NSImage *_brImage;
 	NSString *instanceId = [menu title];
 	if (![instanceId length]) {
 		// status menu
+
+		[self removeSearchKeyMonitor];
 
 		// start with an empty search next time
 		[_searchField setStringValue:@""];
