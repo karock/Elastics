@@ -27,7 +27,71 @@ static NSString *const kElasticsPreferencesSuite			= @"com.tundrabot.Elastics-Pr
 // Instance menu items carry this tag (and the instance ID as represented object)
 static const NSInteger kInstanceMenuItemTag = -100;
 
-@interface ElasticsAppDelegate () <NSSearchFieldDelegate>
+// TEMPORARY: logs which code paths see search-field keys while the menu is open.
+// Read with: log show --last 5m --predicate 'process == "Elastics"' | grep ElasticsKeys
+#define ElasticsKeyLog(path, event) NSLog(@"ElasticsKeys %@: keyCode=%hu chars=%@ flags=0x%lx", (path), [(event) keyCode], [(event) charactersIgnoringModifiers], (unsigned long)[(event) modifierFlags])
+
+// An open menu bar menu runs its own event handling, and the Esc and ⌘F keys don't
+// reach the search field's delegate the way typed text does. These subclasses offer
+// the keys to -handleSearchKeyEvent: at every point AppKit might hand them over.
+@protocol ElasticsSearchKeyHandler
+- (BOOL)handleSearchKeyEvent:(NSEvent *)event via:(NSString *)path;
+@end
+
+@interface ElasticsSearchField : NSSearchField
+@property (nonatomic, assign) id<ElasticsSearchKeyHandler> keyHandler;
+@end
+
+@implementation ElasticsSearchField
+@synthesize keyHandler = _keyHandler;
+
+- (BOOL)performKeyEquivalent:(NSEvent *)event
+{
+	if ([_keyHandler handleSearchKeyEvent:event via:@"searchField.performKeyEquivalent"])
+		return YES;
+	return [super performKeyEquivalent:event];
+}
+
+- (void)cancelOperation:(id)sender
+{
+	NSEvent *event = [NSApp currentEvent];
+	if (event && [_keyHandler handleSearchKeyEvent:event via:@"searchField.cancelOperation"])
+		return;
+	[super cancelOperation:sender];
+}
+@end
+
+@interface ElasticsSearchHeaderView : NSView
+@property (nonatomic, assign) id<ElasticsSearchKeyHandler> keyHandler;
+@end
+
+@implementation ElasticsSearchHeaderView
+@synthesize keyHandler = _keyHandler;
+
+- (BOOL)performKeyEquivalent:(NSEvent *)event
+{
+	if ([_keyHandler handleSearchKeyEvent:event via:@"headerView.performKeyEquivalent"])
+		return YES;
+	return [super performKeyEquivalent:event];
+}
+@end
+
+@interface ElasticsStatusMenu : NSMenu
+@property (nonatomic, assign) id<ElasticsSearchKeyHandler> keyHandler;
+@end
+
+@implementation ElasticsStatusMenu
+@synthesize keyHandler = _keyHandler;
+
+- (BOOL)performKeyEquivalent:(NSEvent *)event
+{
+	if ([_keyHandler handleSearchKeyEvent:event via:@"menu.performKeyEquivalent"])
+		return YES;
+	return [super performKeyEquivalent:event];
+}
+@end
+
+@interface ElasticsAppDelegate () <NSSearchFieldDelegate, ElasticsSearchKeyHandler>
 
 - (void)setUpSearchItem;
 - (void)removeMenuItemsBelowSearch;
@@ -98,6 +162,7 @@ static const NSInteger kInstanceMenuItemTag = -100;
 	NSSearchField	*_searchField;
 	NSMenuItem		*_noMatchesItem;    // shown when the search hides every instance
 	id				_searchKeyMonitor;  // local ⌘F monitor, installed while the status menu is open
+	NSTimeInterval	_lastHandledSearchKeyTimestamp;
 }
 
 @synthesize aboutPanel = _aboutPanel;
@@ -236,7 +301,8 @@ static NSImage *_brImage;
 	[self loadPreferences];
 
 	// set up status item menu
-	_statusMenu = [[NSMenu alloc] initWithTitle:@""];
+	_statusMenu = [[ElasticsStatusMenu alloc] initWithTitle:@""];
+	[(ElasticsStatusMenu *)_statusMenu setKeyHandler:self];
 	[_statusMenu setAutoenablesItems:NO];
 //	[_statusMenu setShowsStateColumn:NO];
 	[_statusMenu setDelegate:self];
@@ -502,10 +568,12 @@ static NSImage *_brImage;
 {
 	const CGFloat width = 240.f, height = 30.f, inset = 14.f;
 
-	NSView *view = [[[NSView alloc] initWithFrame:NSMakeRect(0, 0, width, height)] autorelease];
+	ElasticsSearchHeaderView *view = [[[ElasticsSearchHeaderView alloc] initWithFrame:NSMakeRect(0, 0, width, height)] autorelease];
 	[view setAutoresizingMask:NSViewWidthSizable];
+	[view setKeyHandler:self];
 
-	_searchField = [[NSSearchField alloc] initWithFrame:NSMakeRect(inset, 4.f, width - 2 * inset, 22.f)];
+	_searchField = [[ElasticsSearchField alloc] initWithFrame:NSMakeRect(inset, 4.f, width - 2 * inset, 22.f)];
+	[(ElasticsSearchField *)_searchField setKeyHandler:self];
 	[_searchField setAutoresizingMask:NSViewWidthSizable];
 	[[_searchField cell] setPlaceholderString:@"Filter instances (\u2318F)"];
 	[[_searchField cell] setSendsWholeSearchString:NO];
@@ -544,14 +612,45 @@ static BOOL ElasticsIsSearchShortcut(NSEvent *event)
 		&& [[event charactersIgnoringModifiers] caseInsensitiveCompare:@"f"] == NSOrderedSame;
 }
 
+// Esc and ⌘F for the search, from whichever path sees the key first:
+//   ⌘F   focus the search field (selecting the query)
+//   Esc  clear a non-empty search and focus the field; with an empty search, let it
+//        through so the menu closes
+// Returns YES if the key was handled. The same event is handled only once.
+- (BOOL)handleSearchKeyEvent:(NSEvent *)event via:(NSString *)path
+{
+	if ([event type] != NSEventTypeKeyDown)
+		return NO;
+
+	ElasticsKeyLog(path, event);
+
+	if ([event timestamp] == _lastHandledSearchKeyTimestamp)
+		return YES;   // already handled through another path
+
+	BOOL handled = NO;
+	if (ElasticsIsSearchShortcut(event)) {
+		[self focusSearchField];
+		handled = YES;
+	}
+	else if ([event keyCode] == 53 /* kVK_Escape */ && [self clearSearch]) {
+		[self focusSearchField];
+		handled = YES;
+	}
+
+	if (handled) {
+		_lastHandledSearchKeyTimestamp = [event timestamp];
+		NSLog(@"ElasticsKeys handled via %@", path);
+	}
+	return handled;
+}
+
 // ⌘F while the menu is open puts the cursor back in the search field. An open menu
 // handles keys itself, so catch the shortcut both where it looks up key equivalents
 // (this delegate method) and with a local event monitor; whichever sees it first wins,
 // and focusing twice is harmless. The menus have no other key equivalents.
 - (BOOL)menuHasKeyEquivalent:(NSMenu *)menu forEvent:(NSEvent *)event target:(id *)target action:(SEL *)action
 {
-	if (ElasticsIsSearchShortcut(event))
-		[self focusSearchField];
+	[self handleSearchKeyEvent:event via:@"delegate.menuHasKeyEquivalent"];
 	return NO;
 }
 
@@ -561,17 +660,7 @@ static BOOL ElasticsIsSearchShortcut(NSEvent *event)
 		return;
 
 	_searchKeyMonitor = [[NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown handler:^NSEvent *(NSEvent *event) {
-		if (ElasticsIsSearchShortcut(event)) {
-			[self focusSearchField];
-			return nil;
-		}
-		// Esc in the instance list: first clear the search (and go back to the field),
-		// only close the menu when there is nothing to clear
-		if ([event keyCode] == 53 /* kVK_Escape */ && [self clearSearch]) {
-			[self focusSearchField];
-			return nil;
-		}
-		return event;
+		return [self handleSearchKeyEvent:event via:@"localMonitor"] ? nil : event;
 	}] retain];
 }
 
@@ -592,6 +681,8 @@ static BOOL ElasticsIsSearchShortcut(NSEvent *event)
 {
 	if (control != _searchField)
 		return NO;
+
+	NSLog(@"ElasticsKeys doCommandBySelector: %@", NSStringFromSelector(commandSelector));
 
 	if (commandSelector == @selector(cancelOperation:)) {
 		if (![self clearSearch])
@@ -1288,6 +1379,7 @@ static BOOL ElasticsIsSearchShortcut(NSEvent *event)
 		// status menu
 
 		[self removeSearchKeyMonitor];
+		NSLog(@"ElasticsKeys menuDidClose (search was \"%@\", current event %@)", [_searchField stringValue], [NSApp currentEvent]);
 
 		// start with an empty search next time
 		[_searchField setStringValue:@""];
