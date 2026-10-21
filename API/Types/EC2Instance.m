@@ -25,6 +25,7 @@
 @property (nonatomic, retain) NSString *privateIpAddress;
 @property (nonatomic, retain) NSString *ipAddress;
 @property (nonatomic, retain) NSArray *tagSet;
+@property (nonatomic, retain) NSArray *instanceGroupSet;
 @end
 
 @implementation EC2Instance
@@ -41,6 +42,7 @@
 @synthesize privateIpAddress = _privateIpAddress;
 @synthesize ipAddress = _ipAddress;
 @synthesize tagSet = _tagSet;
+@synthesize instanceGroupSet = _instanceGroupSet;
 
 - (id)initFromXMLElement:(TBXMLElement *)element parent:(AWSType *)parent
 {
@@ -76,6 +78,8 @@
 				self.ipAddress = [TBXML textForElement:element];
 			else if ([elementName isEqualToString:@"tagSet"])
 				self.tagSet = [self parseElement:element asArrayOf:[EC2Tag class]];
+			else if ([elementName isEqualToString:@"groupSet"])
+				self.instanceGroupSet = [self parseElement:element asArrayOf:[EC2Group class]];
 
 			element = element->nextSibling;
 		}
@@ -98,20 +102,28 @@
 	TBRelease(_privateIpAddress);
 	TBRelease(_ipAddress);
 	TBRelease(_tagSet);
+	TBRelease(_instanceGroupSet);
 	[super dealloc];
 }
 
 - (NSArray *)groupSet
 {
+	if ([_instanceGroupSet count])
+		return _instanceGroupSet;
 	return ((EC2Reservation *)self.parent).groupSet;
 }
 
 - (NSString *)securityGroup
 {
-    if ([[self groupSet] count])
-        return [[[self groupSet] objectAtIndex:0] groupId];
-    else
-        return nil;
+	NSMutableArray *names = [NSMutableArray array];
+
+	for (EC2Group *group in [self groupSet]) {
+		NSString *name = [group.groupName length] ? group.groupName : group.groupId;
+		if ([name length])
+			[names addObject:name];
+	}
+
+	return [names count] ? [names componentsJoinedByString:@", "] : nil;
 }
 
 - (NSString *)nameTag

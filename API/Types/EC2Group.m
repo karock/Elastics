@@ -10,11 +10,13 @@
 
 @interface EC2Group ()
 @property (nonatomic, retain) NSString *groupId;
+@property (nonatomic, retain) NSString *groupName;
 @end
 
 @implementation EC2Group
 
 @synthesize groupId = _groupId;
+@synthesize groupName = _groupName;
 
 - (id)initFromXMLElement:(TBXMLElement *)element parent:(AWSType *)parent
 {
@@ -28,6 +30,8 @@
 			
 			if ([elementName isEqualToString:@"groupId"])
 				self.groupId = [TBXML textForElement:element];
+			else if ([elementName isEqualToString:@"groupName"])
+				self.groupName = [TBXML textForElement:element];
 
 			element = element->nextSibling;
 		}
@@ -39,6 +43,7 @@
 - (void)dealloc
 {
 	[_groupId release];
+	[_groupName release];
 	[super dealloc];
 }
 

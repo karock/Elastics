@@ -12,8 +12,10 @@
 @interface EC2Group : AWSType {
 @private
 	NSString	*_groupId;
+	NSString	*_groupName;
 }
 
 @property (nonatomic, retain, readonly) NSString *groupId;
+@property (nonatomic, retain, readonly) NSString *groupName;
 
 @end
