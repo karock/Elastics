@@ -738,6 +738,7 @@
 				GCC_PREFIX_HEADER = Elastics_Prefix.pch;
 				INFOPLIST_FILE = Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.tundrabot.Elastics;
+				CODE_SIGN_ENTITLEMENTS = Elastics.entitlements;
 				INSTALL_PATH = "$(HOME)/Applications";
 				PRODUCT_NAME = Elastics;
 			};
@@ -750,6 +751,7 @@
 				GCC_PREFIX_HEADER = Elastics_Prefix.pch;
 				INFOPLIST_FILE = Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.tundrabot.Elastics;
+				CODE_SIGN_ENTITLEMENTS = Elastics.entitlements;
 				INSTALL_PATH = "$(HOME)/Applications";
 				PRODUCT_NAME = Elastics;
 			};
@@ -761,6 +763,7 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
+				ENABLE_HARDENED_RUNTIME = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
@@ -782,6 +785,7 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
+				ENABLE_HARDENED_RUNTIME = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
@@ -798,6 +802,7 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
+				ENABLE_HARDENED_RUNTIME = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
@@ -823,6 +828,7 @@
 				GCC_PREFIX_HEADER = Elastics_Prefix.pch;
 				INFOPLIST_FILE = Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.tundrabot.Elastics;
+				CODE_SIGN_ENTITLEMENTS = Elastics.entitlements;
 				INSTALL_PATH = "$(HOME)/Applications";
 				PRODUCT_NAME = Elastics;
 			};
@@ -834,6 +840,7 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
+				ENABLE_HARDENED_RUNTIME = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
@@ -851,6 +858,7 @@
 				GCC_PREFIX_HEADER = Elastics_Prefix.pch;
 				INFOPLIST_FILE = Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.tundrabot.Elastics;
+				CODE_SIGN_ENTITLEMENTS = Elastics.entitlements;
 				INSTALL_PATH = "$(HOME)/Applications";
 				PRODUCT_NAME = Elastics;
 			};
