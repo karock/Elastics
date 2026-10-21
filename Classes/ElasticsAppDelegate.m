@@ -24,7 +24,16 @@ const CGFloat kMessageTableWidth                = 180.;
 static NSString *const kElasticsPreferencesApplicationPath	= @"Contents/Helpers/Elastics Preferences.app";
 static NSString *const kElasticsPreferencesSuite			= @"com.tundrabot.Elastics-Preferences";
 
-@interface ElasticsAppDelegate ()
+// Instance menu items carry this tag (and the instance ID as represented object)
+static const NSInteger kInstanceMenuItemTag = -100;
+
+@interface ElasticsAppDelegate () <NSSearchFieldDelegate>
+
+- (void)setUpSearchItem;
+- (void)removeMenuItemsBelowSearch;
+- (void)applySearchFilter;
+- (BOOL)instance:(EC2Instance *)instance matchesSearchTerms:(NSArray *)terms;
+- (void)focusSearchField;
 
 - (void)resetMenu;
 - (void)addMenuActionItems;
@@ -79,7 +88,11 @@ static NSString *const kElasticsPreferencesSuite			= @"com.tundrabot.Elastics-Pr
 
 @end
 
-@implementation ElasticsAppDelegate
+@implementation ElasticsAppDelegate {
+	NSMenuItem		*_searchItem;       // always the first item of the status menu
+	NSSearchField	*_searchField;
+	NSMenuItem		*_noMatchesItem;    // shown when the search hides every instance
+}
 
 @synthesize aboutPanel = _aboutPanel;
 @synthesize aboutVersionLabel = _aboutVersionLabel;
@@ -221,6 +234,7 @@ static NSImage *_brImage;
 	[_statusMenu setAutoenablesItems:NO];
 //	[_statusMenu setShowsStateColumn:NO];
 	[_statusMenu setDelegate:self];
+	[self setUpSearchItem];
 	[self resetMenu];
 
 	// set up status item
@@ -293,6 +307,9 @@ static NSImage *_brImage;
 	[_refreshTimer invalidate];
 	[_refreshTimer release];
 	[_accountsManager release];
+	[_searchItem release];
+	[_searchField release];
+	[_noMatchesItem release];
 
 	[super dealloc];
 }
@@ -301,7 +318,7 @@ static NSImage *_brImage;
 
 - (void)resetMenu
 {
-	[_statusMenu removeAllItems];
+	[self removeMenuItemsBelowSearch];
 	[_statusMenu addItem:[self progressMessageItemWithTitle:@"Querying instance info..."]];
 	[self addMenuActionItems];
 }
@@ -366,7 +383,7 @@ static NSImage *_brImage;
 //        TBTrace(@"current region refresh");
         
         [_statusMenu setMinimumWidth:0];
-        [_statusMenu removeAllItems];
+        [self removeMenuItemsBelowSearch];
 
         NSError *error = [userInfo objectForKey:kDataSourceErrorInfoKey];
         if (error) {
@@ -408,6 +425,8 @@ static NSImage *_brImage;
                 for (EC2Instance *instance in instances) {
                     [_statusMenu addItem:[self instanceItemWithInstance:instance]];
                 }
+                [_statusMenu addItem:_noMatchesItem];
+                [self applySearchFilter];
                 
                 [self addMenuActionItems];
             }
@@ -468,6 +487,96 @@ static NSImage *_brImage;
         else
             TBTrace(@"instance not found: %@ %zd", instance, menuItemIdx);
     }
+}
+
+#pragma mark - Instance search
+
+- (void)setUpSearchItem
+{
+	const CGFloat width = 240.f, height = 30.f, inset = 14.f;
+
+	NSView *view = [[[NSView alloc] initWithFrame:NSMakeRect(0, 0, width, height)] autorelease];
+	[view setAutoresizingMask:NSViewWidthSizable];
+
+	_searchField = [[NSSearchField alloc] initWithFrame:NSMakeRect(inset, 4.f, width - 2 * inset, 22.f)];
+	[_searchField setAutoresizingMask:NSViewWidthSizable];
+	[[_searchField cell] setPlaceholderString:@"Filter instances"];
+	[[_searchField cell] setSendsWholeSearchString:NO];
+	[_searchField setDelegate:self];
+	[view addSubview:_searchField];
+
+	_searchItem = [[NSMenuItem alloc] initWithTitle:@"" action:NULL keyEquivalent:@""];
+	[_searchItem setView:view];
+	[_statusMenu insertItem:_searchItem atIndex:0];
+
+	_noMatchesItem = [[self notificationMessageItemWithTitle:@"No matching instances"] retain];
+	[_noMatchesItem setHidden:YES];
+}
+
+// Rebuilding the menu keeps the search item (and its text and focus) in place.
+- (void)removeMenuItemsBelowSearch
+{
+	while ([_statusMenu numberOfItems] > 0 && [_statusMenu itemAtIndex:[_statusMenu numberOfItems] - 1] != _searchItem)
+		[_statusMenu removeItemAtIndex:[_statusMenu numberOfItems] - 1];
+}
+
+- (void)focusSearchField
+{
+	NSWindow *window = [_searchField window];
+	if (window)
+		[window makeFirstResponder:_searchField];
+}
+
+- (void)controlTextDidChange:(NSNotification *)notification
+{
+	if ([notification object] == _searchField)
+		[self applySearchFilter];
+}
+
+// Hide instance items that don't match. Every word typed must appear (case- and
+// diacritic-insensitive) in the name, instance ID, type, private or public IP.
+- (void)applySearchFilter
+{
+	NSCharacterSet *whitespace = [NSCharacterSet whitespaceAndNewlineCharacterSet];
+	NSMutableArray *terms = [NSMutableArray array];
+	for (NSString *term in [[_searchField stringValue] componentsSeparatedByCharactersInSet:whitespace]) {
+		if ([term length])
+			[terms addObject:term];
+	}
+
+	DataSource *dataSource = [DataSource sharedDataSource];
+	NSUInteger instanceCount = 0, visibleCount = 0;
+
+	for (NSMenuItem *item in [_statusMenu itemArray]) {
+		if ([item tag] != kInstanceMenuItemTag)
+			continue;
+
+		instanceCount++;
+		EC2Instance *instance = [dataSource instance:[item representedObject]];
+		BOOL visible = ![terms count] || (instance && [self instance:instance matchesSearchTerms:terms]);
+		[item setHidden:!visible];
+		if (visible)
+			visibleCount++;
+	}
+
+	[_noMatchesItem setHidden:!(instanceCount > 0 && visibleCount == 0)];
+}
+
+- (BOOL)instance:(EC2Instance *)instance matchesSearchTerms:(NSArray *)terms
+{
+	NSMutableArray *fields = [NSMutableArray array];
+	if (instance.title)				[fields addObject:instance.title];
+	if (instance.instanceId)		[fields addObject:instance.instanceId];
+	if (instance.instanceType)		[fields addObject:instance.instanceType];
+	if (instance.privateIpAddress)	[fields addObject:instance.privateIpAddress];
+	if (instance.ipAddress)			[fields addObject:instance.ipAddress];
+	NSString *haystack = [fields componentsJoinedByString:@" "];
+
+	for (NSString *term in terms) {
+		if ([haystack rangeOfString:term options:NSCaseInsensitiveSearch | NSDiacriticInsensitiveSearch].location == NSNotFound)
+			return NO;
+	}
+	return YES;
 }
 
 #pragma mark - Menu item helpers
@@ -589,7 +698,7 @@ static NSImage *_brImage;
 	// set item represented object to instance id
 	[menuItem setRepresentedObject:instance.instanceId];
     // set tag to mark instance items
-    [menuItem setTag:-100];
+    [menuItem setTag:kInstanceMenuItemTag];
 
 	return menuItem;
 }
@@ -996,11 +1105,26 @@ static NSImage *_brImage;
 	}
 }
 
+- (void)menuWillOpen:(NSMenu *)menu
+{
+	if (menu == _statusMenu) {
+		// the menu's window exists only once tracking starts; focus the field on the next pass
+		[self performSelector:@selector(focusSearchField)
+				   withObject:nil
+				   afterDelay:0.
+					  inModes:[NSArray arrayWithObjects:NSEventTrackingRunLoopMode, NSDefaultRunLoopMode, nil]];
+	}
+}
+
 - (void)menuDidClose:(NSMenu *)menu
 {
 	NSString *instanceId = [menu title];
 	if (![instanceId length]) {
 		// status menu
+
+		// start with an empty search next time
+		[_searchField setStringValue:@""];
+		[self applySearchFilter];
 		
 		// enable background refresh
 		[self enableRefreshTimer];
