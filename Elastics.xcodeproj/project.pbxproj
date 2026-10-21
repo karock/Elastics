@@ -15,10 +15,8 @@
 		C311E2E014B1B177000CB004 /* EC2Placement.m in Sources */ = {isa = PBXBuildFile; fileRef = C311E2DF14B1B177000CB004 /* EC2Placement.m */; };
 		C32823E312C90E1900020D48 /* AWSError.m in Sources */ = {isa = PBXBuildFile; fileRef = C32823E212C90E1900020D48 /* AWSError.m */; };
 		C32C295D12C0C60900F2C136 /* AWSConstants.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C290B12C0C60900F2C136 /* AWSConstants.m */; };
+		67CF694CB512832DA52850DA /* AWSSignatureV4.m in Sources */ = {isa = PBXBuildFile; fileRef = 8B0C4E1B8DED21DA7695A50B /* AWSSignatureV4.m */; };
 		C32C295E12C0C60900F2C136 /* AWSRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C290D12C0C60900F2C136 /* AWSRequest.m */; };
-		C32C295F12C0C60900F2C136 /* NSData+Base64.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C290F12C0C60900F2C136 /* NSData+Base64.m */; };
-		C32C296012C0C60900F2C136 /* NSString+HMAC-SHA1.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C291112C0C60900F2C136 /* NSString+HMAC-SHA1.m */; };
-		C32C296112C0C60900F2C136 /* NSString+URLEncoding.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C291312C0C60900F2C136 /* NSString+URLEncoding.m */; };
 		C32C296412C0C60900F2C136 /* EC2DescribeInstancesRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C291A12C0C60900F2C136 /* EC2DescribeInstancesRequest.m */; };
 		C32C296A12C0C60900F2C136 /* EC2DescribeInstancesResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C292712C0C60900F2C136 /* EC2DescribeInstancesResponse.m */; };
 		C32C296D12C0C60900F2C136 /* AWSResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C292D12C0C60900F2C136 /* AWSResponse.m */; };
@@ -139,14 +137,10 @@
 		C32C28C912C0C09200F2C136 /* Elastics.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Elastics.xcconfig; sourceTree = "<group>"; };
 		C32C290A12C0C60900F2C136 /* AWSConstants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AWSConstants.h; sourceTree = "<group>"; };
 		C32C290B12C0C60900F2C136 /* AWSConstants.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AWSConstants.m; sourceTree = "<group>"; };
+		8B0C4E1B8DED21DA7695A50B /* AWSSignatureV4.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AWSSignatureV4.m; sourceTree = "<group>"; };
+		7FFE61EABAC5AD8E8BAA5D09 /* AWSSignatureV4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AWSSignatureV4.h; sourceTree = "<group>"; };
 		C32C290C12C0C60900F2C136 /* AWSRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AWSRequest.h; sourceTree = "<group>"; };
 		C32C290D12C0C60900F2C136 /* AWSRequest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AWSRequest.m; sourceTree = "<group>"; };
-		C32C290E12C0C60900F2C136 /* NSData+Base64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSData+Base64.h"; sourceTree = "<group>"; };
-		C32C290F12C0C60900F2C136 /* NSData+Base64.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSData+Base64.m"; sourceTree = "<group>"; };
-		C32C291012C0C60900F2C136 /* NSString+HMAC-SHA1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSString+HMAC-SHA1.h"; sourceTree = "<group>"; };
-		C32C291112C0C60900F2C136 /* NSString+HMAC-SHA1.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSString+HMAC-SHA1.m"; sourceTree = "<group>"; };
-		C32C291212C0C60900F2C136 /* NSString+URLEncoding.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSString+URLEncoding.h"; sourceTree = "<group>"; };
-		C32C291312C0C60900F2C136 /* NSString+URLEncoding.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSString+URLEncoding.m"; sourceTree = "<group>"; };
 		C32C291912C0C60900F2C136 /* EC2DescribeInstancesRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EC2DescribeInstancesRequest.h; sourceTree = "<group>"; };
 		C32C291A12C0C60900F2C136 /* EC2DescribeInstancesRequest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = EC2DescribeInstancesRequest.m; sourceTree = "<group>"; };
 		C32C292612C0C60900F2C136 /* EC2DescribeInstancesResponse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EC2DescribeInstancesResponse.h; sourceTree = "<group>"; };
@@ -366,12 +360,8 @@
 				C32C292112C0C60900F2C136 /* Responses */,
 				C32C290A12C0C60900F2C136 /* AWSConstants.h */,
 				C32C290B12C0C60900F2C136 /* AWSConstants.m */,
-				C32C290E12C0C60900F2C136 /* NSData+Base64.h */,
-				C32C290F12C0C60900F2C136 /* NSData+Base64.m */,
-				C32C291012C0C60900F2C136 /* NSString+HMAC-SHA1.h */,
-				C32C291112C0C60900F2C136 /* NSString+HMAC-SHA1.m */,
-				C32C291212C0C60900F2C136 /* NSString+URLEncoding.h */,
-				C32C291312C0C60900F2C136 /* NSString+URLEncoding.m */,
+				8B0C4E1B8DED21DA7695A50B /* AWSSignatureV4.m */,
+				7FFE61EABAC5AD8E8BAA5D09 /* AWSSignatureV4.h */,
 				C32C327E12C239FE00F2C136 /* NSDate+StringConversions.h */,
 				C32C327F12C239FE00F2C136 /* NSDate+StringConversions.m */,
 				C32C32AF12C23CDA00F2C136 /* NSString+DateConversions.h */,
@@ -629,10 +619,8 @@
 				8D11072D0486CEB800E47090 /* main.m in Sources */,
 				256AC3DA0F4B6AC300CF3369 /* ElasticsAppDelegate.m in Sources */,
 				C32C295D12C0C60900F2C136 /* AWSConstants.m in Sources */,
+				67CF694CB512832DA52850DA /* AWSSignatureV4.m in Sources */,
 				C32C295E12C0C60900F2C136 /* AWSRequest.m in Sources */,
-				C32C295F12C0C60900F2C136 /* NSData+Base64.m in Sources */,
-				C32C296012C0C60900F2C136 /* NSString+HMAC-SHA1.m in Sources */,
-				C32C296112C0C60900F2C136 /* NSString+URLEncoding.m in Sources */,
 				C32C296412C0C60900F2C136 /* EC2DescribeInstancesRequest.m in Sources */,
 				C32C296A12C0C60900F2C136 /* EC2DescribeInstancesResponse.m in Sources */,
 				C32C296D12C0C60900F2C136 /* AWSResponse.m in Sources */,
