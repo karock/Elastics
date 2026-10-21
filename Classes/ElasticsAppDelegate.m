@@ -126,12 +126,12 @@ static NSImage *_brImage;
 	TB_VALIDATE_EXPIRATION_DATE();
 	
 	if (!_titleColor)               _titleColor = [[NSColor colorWithDeviceRed:(0.f/255.f) green:(112.f/255.f) blue:(180.f/255.f) alpha:1.f] retain];
-	if (!_taggedInstanceColor)      _taggedInstanceColor = [[NSColor blackColor] retain];
-	if (!_untaggedInstanceColor)	_untaggedInstanceColor = [[NSColor blackColor] retain];
-	if (!_actionItemColor)			_actionItemColor = [[NSColor blackColor] retain];
-	if (!_messageItemColor)			_messageItemColor = [[NSColor colorWithDeviceRed:(0.f/255.f) green:(0.f/255.f) blue:(0.f/255.f) alpha:0.70f] retain];
-	if (!_labelColumnColor)			_labelColumnColor = [[NSColor blackColor] retain];
-	if (!_infoColumnColor)			_infoColumnColor = [[NSColor blackColor] retain];
+	if (!_taggedInstanceColor)      _taggedInstanceColor = [[NSColor labelColor] retain];
+	if (!_untaggedInstanceColor)	_untaggedInstanceColor = [[NSColor labelColor] retain];
+	if (!_actionItemColor)			_actionItemColor = [[NSColor labelColor] retain];
+	if (!_messageItemColor)			_messageItemColor = [[NSColor secondaryLabelColor] retain];
+	if (!_labelColumnColor)			_labelColumnColor = [[NSColor labelColor] retain];
+	if (!_infoColumnColor)			_infoColumnColor = [[NSColor labelColor] retain];
 
 	if (!_statusItemFont)			_statusItemFont = [[NSFont systemFontOfSize:13.0f] retain];
 	
