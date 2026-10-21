@@ -10,5 +10,5 @@
 
 NSString *const kElasticsSecServiceName				= @"com.tundrabot.Elastics";
 
-NSString *const kElasticsBundleShortVersionString	= @"1.6";
+NSString *const kElasticsBundleShortVersionString	= @"1.7";
 NSString *const kElasticsBundleIdentifier			= @"com.tundrabot.Elastics";

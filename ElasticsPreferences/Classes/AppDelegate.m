@@ -22,8 +22,10 @@ enum {
 
 #define PANE_SWITCH_ANIMATION_DURATION	0.25
 
-static NSString *const kElasticsWebsiteURL      = @"http://tundrabot.com";
-static NSString *const kElasticsSendFeedbackURL = @"mailto:support@tundrabot.com";
+// The original author's site (tundrabot.com) is gone; link to the original repository,
+// and send feedback about this unofficial build to its fork, not to the original author.
+static NSString *const kElasticsWebsiteURL      = @"https://github.com/tundrabot/Elastics";
+static NSString *const kElasticsSendFeedbackURL = @"https://github.com/karock/Elastics/issues";
 
 @interface AppDelegate ()
 
@@ -694,9 +696,39 @@ enum {
 	NSAttributedString *copyright = [[NSAttributedString alloc] initWithHTML:copyrightData documentAttributes:nil];
 	
 	[_aboutVersionLabel setStringValue:version];
-	[_aboutCopyrightLabel setAttributedStringValue:copyright];
+
+	// HTML import hard-codes black text; use the label color (readable in Dark Mode),
+	// except on links, which keep their link styling
+	NSMutableAttributedString *credits = [[copyright mutableCopy] autorelease];
 	[copyright release];
-	
+	[credits enumerateAttribute:NSLinkAttributeName
+						inRange:NSMakeRange(0, [credits length])
+						options:0
+					 usingBlock:^(id link, NSRange range, BOOL *stop) {
+		if (!link)
+			[credits addAttribute:NSForegroundColorAttributeName value:[NSColor labelColor] range:range];
+	}];
+
+	// links are only clickable in a selectable label with text attributes enabled
+	[_aboutCopyrightLabel setSelectable:YES];
+	[_aboutCopyrightLabel setAllowsEditingTextAttributes:YES];
+	[[_aboutCopyrightLabel cell] setWraps:YES];
+	[[_aboutCopyrightLabel cell] setLineBreakMode:NSLineBreakByWordWrapping];
+	[_aboutCopyrightLabel setAttributedStringValue:credits];
+
+	// the nib sized this label for one line: grow the panel (its other views keep
+	// their distance from the top) and the label to fit the credits, once
+	NSRect labelFrame = [_aboutCopyrightLabel frame];
+	CGFloat neededHeight = ceil([[_aboutCopyrightLabel cell] cellSizeForBounds:NSMakeRect(0, 0, NSWidth(labelFrame), CGFLOAT_MAX)].height);
+	CGFloat delta = neededHeight - NSHeight(labelFrame);
+	if (delta > 0) {
+		NSRect panelFrame = [_aboutPanel frame];
+		panelFrame.size.height += delta;
+		[_aboutPanel setFrame:panelFrame display:NO];
+		[_aboutCopyrightLabel setFrame:NSMakeRect(NSMinX(labelFrame), NSMinY(labelFrame), NSWidth(labelFrame), neededHeight)];
+	}
+
+	[_aboutPanel center];
 	[_aboutPanel makeKeyAndOrderFront:self];
 }
 
