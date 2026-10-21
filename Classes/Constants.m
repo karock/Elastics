@@ -12,5 +12,3 @@ NSString *const kElasticsSecServiceName				= @"com.tundrabot.Elastics";
 
 NSString *const kElasticsBundleShortVersionString	= @"1.6";
 NSString *const kElasticsBundleIdentifier			= @"com.tundrabot.Elastics";
-
-NSString *const kElasticsSampleReceiptPath			= @"~/Documents/receipt.sample";

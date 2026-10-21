@@ -79,9 +79,6 @@
 		C3CC6E5F15FF86BC0051503D /* StatusItemAlert@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = C3CC6E5D15FF86BC0051503D /* StatusItemAlert@2x.png */; };
 		C3CE021912D76678006E87EF /* StatusItemAlert.png in Resources */ = {isa = PBXBuildFile; fileRef = C3CE021812D76678006E87EF /* StatusItemAlert.png */; };
 		C3D1D9C212DB2857005E576A /* InstanceStateRefreshing.png in Resources */ = {isa = PBXBuildFile; fileRef = C3D1D9C112DB2857005E576A /* InstanceStateRefreshing.png */; };
-		C3D1DA6D12DB32C0005E576A /* ValidateReceipt.m in Sources */ = {isa = PBXBuildFile; fileRef = C3D1DA6C12DB32C0005E576A /* ValidateReceipt.m */; };
-		C3D1DA8012DB33D8005E576A /* libcrypto.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C3D1DA7F12DB33D8005E576A /* libcrypto.dylib */; };
-		C3D1DA8412DB33E5005E576A /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3D1DA8312DB33E5005E576A /* IOKit.framework */; };
 		C3D1DB4112DB3471005E576A /* Constants.m in Sources */ = {isa = PBXBuildFile; fileRef = C3D1DB4012DB3471005E576A /* Constants.m */; };
 		C3D1DC6912DB574F005E576A /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = C3D1DC6812DB574F005E576A /* Credits.html */; };
 		C3DAED6E12C34DE200A0106D /* ChartView.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAED6D12C34DE200A0106D /* ChartView.m */; };
@@ -238,10 +235,6 @@
 		C3CC6E5D15FF86BC0051503D /* StatusItemAlert@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "StatusItemAlert@2x.png"; sourceTree = "<group>"; };
 		C3CE021812D76678006E87EF /* StatusItemAlert.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = StatusItemAlert.png; sourceTree = "<group>"; };
 		C3D1D9C112DB2857005E576A /* InstanceStateRefreshing.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = InstanceStateRefreshing.png; sourceTree = "<group>"; };
-		C3D1DA6B12DB32C0005E576A /* ValidateReceipt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ValidateReceipt.h; path = Classes/ValidateReceipt.h; sourceTree = "<group>"; };
-		C3D1DA6C12DB32C0005E576A /* ValidateReceipt.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = ValidateReceipt.m; path = Classes/ValidateReceipt.m; sourceTree = "<group>"; };
-		C3D1DA7F12DB33D8005E576A /* libcrypto.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcrypto.dylib; path = usr/lib/libcrypto.dylib; sourceTree = SDKROOT; };
-		C3D1DA8312DB33E5005E576A /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		C3D1DB3F12DB3471005E576A /* Constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Constants.h; sourceTree = "<group>"; };
 		C3D1DB4012DB3471005E576A /* Constants.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Constants.m; sourceTree = "<group>"; };
 		C3D1DC6812DB574F005E576A /* Credits.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Credits.html; sourceTree = "<group>"; };
@@ -267,9 +260,7 @@
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
 				C379FD6612D89BB800D055EF /* Security.framework in Frameworks */,
 				C32C30FA12C20F2F00F2C136 /* QuartzCore.framework in Frameworks */,
-				C3D1DA8412DB33E5005E576A /* IOKit.framework in Frameworks */,
 				C32C29CA12C0C9BB00F2C136 /* libz.dylib in Frameworks */,
-				C3D1DA8012DB33D8005E576A /* libcrypto.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -307,9 +298,7 @@
 				1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */,
 				C32C30F912C20F2F00F2C136 /* QuartzCore.framework */,
 				C379FD6512D89BB800D055EF /* Security.framework */,
-				C3D1DA8312DB33E5005E576A /* IOKit.framework */,
 				C32C29C912C0C9BB00F2C136 /* libz.dylib */,
-				C3D1DA7F12DB33D8005E576A /* libcrypto.dylib */,
 			);
 			name = "Linked Frameworks";
 			sourceTree = "<group>";
@@ -329,7 +318,6 @@
 				C32C290912C0C60900F2C136 /* API */,
 				080E96DDFE201D6D7F000001 /* Classes */,
 				C32C298712C0C63900F2C136 /* TBXML */,
-				C3D1DA6912DB32A2005E576A /* Receipt Validation */,
 				29B97315FDCFA39411CA2CEA /* Other Sources */,
 				29B97317FDCFA39411CA2CEA /* Resources */,
 				29B97323FDCFA39411CA2CEA /* Frameworks */,
@@ -519,15 +507,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		C3D1DA6912DB32A2005E576A /* Receipt Validation */ = {
-			isa = PBXGroup;
-			children = (
-				C3D1DA6B12DB32C0005E576A /* ValidateReceipt.h */,
-				C3D1DA6C12DB32C0005E576A /* ValidateReceipt.m */,
-			);
-			name = "Receipt Validation";
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -682,7 +661,6 @@
 				C391BB0C12CB9F3E00BD929A /* AWSErrorResponse.m in Sources */,
 				C391BB0F12CBA0C600BD929A /* EC2ErrorResponse.m in Sources */,
 				C391BB1212CBA10A00BD929A /* MonitoringErrorResponse.m in Sources */,
-				C3D1DA6D12DB32C0005E576A /* ValidateReceipt.m in Sources */,
 				C3D1DB4112DB3471005E576A /* Constants.m in Sources */,
 				C3BC74DD13E13BFE0061D438 /* Account.m in Sources */,
 				C3BC74DE13E13BFE0061D438 /* AccountsManager.m in Sources */,
@@ -759,7 +737,6 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					DEBUG,
 					TB_DEBUG,
-					TB_USE_SAMPLE_RECEIPT,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				ONLY_ACTIVE_ARCH = YES;
@@ -801,7 +778,6 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					DEBUG,
 					TB_DEBUG,
-					TB_SKIP_RECEIPT_VALIDATION,
 					TB_USE_EXPIRATION_DATE,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
