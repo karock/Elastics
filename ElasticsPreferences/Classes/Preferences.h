@@ -12,18 +12,6 @@ extern NSString *const kPreferencesDidChangeNotification;
 // Distributed notification sent when main application terminates
 extern NSString *const kPreferencesShouldTerminateNotification;
 
-// AWS regions as stored in prefs and selected in combo
-enum {
-	kPreferencesAWSUSEastRegion,
-	kPreferencesAWSUSWestNorthCaliforniaRegion,
-	kPreferencesAWSUSWestOregonRegion,
-	kPreferencesAWSEURegion,
-	kPreferencesAWSAsiaPacificSingaporeRegion,
-	kPreferencesAWSAsiaPacificJapanRegion,
-	kPreferencesAWSSouthAmericaSaoPauloRegion,
-	kPreferencesAWSUSGovCloudRegion,
-};
-
 // Terminal application types
 enum {
 	kPreferencesTerminalApplicationTerminal,
@@ -43,7 +31,7 @@ enum {
 @property (nonatomic, assign) NSInteger accountId;
 
 // Selected region
-@property (nonatomic, assign) NSInteger region;				// from the enum above
+@property (nonatomic, assign) NSInteger region;				// region preference index, see AWSRegionPreferenceIndex()
 @property (nonatomic, readonly) NSString *awsRegion;		// translated as expected by AWS API
 
 @property (nonatomic, assign) NSInteger refreshInterval;
@@ -52,16 +40,10 @@ enum {
 @property (nonatomic, assign, getter=isSortInstancesByTitle) BOOL sortInstancesByTitle;
 @property (nonatomic, assign, getter=isHideTerminatedInstances) BOOL hideTerminatedInstances;
 
-@property (nonatomic, assign) NSArray *activeRegions;         // active regions, from the enum above
-@property (nonatomic, readonly) NSArray *activeAWSRegions;    // active regions, translated as expected by AWS API
-@property (nonatomic, assign, getter=isRegionUSEastActive) BOOL regionUSEastActive;
-@property (nonatomic, assign, getter=isRegionUSWestNorthCaliforniaActive) BOOL regionUSWestNorthCaliforniaActive;
-@property (nonatomic, assign, getter=isRegionUSWestOregonActive) BOOL regionUSWestOregonActive;
-@property (nonatomic, assign, getter=isRegionEUActive) BOOL regionEUActive;
-@property (nonatomic, assign, getter=isRegionAsiaPacificSingaporeActive) BOOL regionAsiaPacificSingaporeActive;
-@property (nonatomic, assign, getter=isRegionAsiaPacificJapanActive) BOOL regionAsiaPacificJapanActive;
-@property (nonatomic, assign, getter=isRegionSouthAmericaSaoPauloActive) BOOL regionSouthAmericaSaoPauloActive;
-@property (nonatomic, assign, getter=isRegionUSGovCloudActive) BOOL regionUSGovCloudActive;
+@property (nonatomic, readonly) NSArray *activeRegions;       // active regions as preference indices (NSNumber), display order
+@property (nonatomic, readonly) NSArray *activeAWSRegions;    // active regions as AWS region ids, display order
+- (BOOL)isAWSRegionActive:(NSString *)awsRegion;
+- (void)setAWSRegion:(NSString *)awsRegion active:(BOOL)active;
 
 @property (nonatomic, assign) NSString *sshPrivateKeyFile;
 @property (nonatomic, assign) NSString *sshUserName;

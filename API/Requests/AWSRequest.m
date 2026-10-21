@@ -25,7 +25,6 @@ NSString *const kAWSPathOption					= @"AWSPath";
 NSString *const kAWSUseSSLOption				= @"AWSUseSSL";
 
 // Static variables
-static NSArray *_s_awsRegions;
 static NSMutableDictionary *_s_awsRequestDefaultOptions;
 
 @interface AWSRequest ()
@@ -63,19 +62,6 @@ static NSMutableDictionary *_s_awsRequestDefaultOptions;
 
 + (void)initialize
 {
-    if (!_s_awsRegions) {
-        _s_awsRegions = [[NSArray alloc] initWithObjects:
-                         kAWSUSEastRegion,
-                         kAWSUSWestNorthCaliforniaRegion,
-                         kAWSUSWestOregonRegion,
-                         kAWSEURegion,
-                         kAWSAsiaPacificSingaporeRegion,
-                         kAWSAsiaPacificJapanRegion,
-                         kAWSSouthAmericaSaoPauloRegion,
-                         kAWSUSGovCloudRegion,
-                         nil];
-    }
-
 	if (!_s_awsRequestDefaultOptions) {
 		_s_awsRequestDefaultOptions = [[NSMutableDictionary alloc] initWithObjectsAndKeys:
                                        AWSApiDefaultRegion, kAWSRegionOption,
@@ -94,33 +80,6 @@ static NSMutableDictionary *_s_awsRequestDefaultOptions;
 + (void)setDefaultOptions:(NSDictionary *)options
 {
 	[_s_awsRequestDefaultOptions addEntriesFromDictionary:options];
-}
-
-+ (NSArray *)regions
-{
-    return _s_awsRegions;
-}
-
-+ (NSString *)regionTitleForRegion:(NSString *)region
-{
-	if ([region isEqualToString:kAWSUSEastRegion])
-		return kAWSUSEastRegionTitle;
-	else if ([region isEqualToString:kAWSUSWestNorthCaliforniaRegion])
-		return kAWSUSWestNorthCaliforniaRegionTitle;
-	else if ([region isEqualToString:kAWSUSWestOregonRegion])
-		return kAWSUSWestOregonRegionTitle;
-	else if ([region isEqualToString:kAWSEURegion])
-		return kAWSEURegionTitle;
-	else if ([region isEqualToString:kAWSAsiaPacificSingaporeRegion])
-		return kAWSAsiaPacificSingaporeRegionTitle;
-	else if ([region isEqualToString:kAWSAsiaPacificJapanRegion])
-		return kAWSAsiaPacificJapanRegionTitle;
-	else if ([region isEqualToString:kAWSSouthAmericaSaoPauloRegion])
-		return kAWSSouthAmericaSaoPauloRegionTitle;
-	else if ([region isEqualToString:kAWSUSGovCloudRegion])
-		return kAWSUSGovCloudRegionTitle;
-	else
-		return nil;
 }
 
 - (id)initWithOptions:(NSDictionary *)options delegate:(id<AWSRequestDelegate>)delegate

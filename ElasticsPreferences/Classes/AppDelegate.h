@@ -64,6 +64,8 @@
 @property (assign) IBOutlet NSTextField *accountPanelSshPortField;
 @property (assign) IBOutlet NSTextField *accountPanelSshOptionsField;
 
+// Bound by the original region checkboxes in MainMenu.xib, which are replaced at launch
+// (see -buildRegionsPane). Kept so the nib's bindings still resolve.
 @property (nonatomic, assign, getter=isRegionUSEastEnabled) BOOL regionUSEastEnabled;
 @property (nonatomic, assign, getter=isRegionUSWestNorthCaliforniaEnabled) BOOL regionUSWestNorthCaliforniaEnabled;
 @property (nonatomic, assign, getter=isRegionUSWestOregonEnabled) BOOL regionUSWestOregonEnabled;

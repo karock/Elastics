@@ -36,6 +36,7 @@ static NSString *const kElasticsPreferencesSuite			= @"com.tundrabot.Elastics-Pr
 - (NSMenuItem *)errorMessageItemWithTitle:(NSString *)title;
 - (NSMenuItem *)notificationMessageItemWithTitle:(NSString *)title;
 - (NSMenuItem *)instanceItemWithInstance:(EC2Instance *)instance;
+- (NSImage *)imageForRegion:(NSString *)awsRegion;
 - (NSMenuItem *)regionItemWithRegion:(NSString *)awsRegion info:(NSString *)info;
 - (NSMenuItem *)chartItemWithRange:(NSUInteger)range datapoints:(NSArray *)datapoints;
 - (NSMenuItem *)infoItemWithLabel:(NSString *)label info:(NSString *)info action:(SEL)action tooltip:(NSString *)tooltip;
@@ -327,30 +328,10 @@ static NSImage *_brImage;
 		[_statusMenu addItem:[NSMenuItem separatorItem]];
 		[_statusMenu addItem:[self titleItemWithTitle:@"AWS REGIONS"]];
 
-        if (userDefaults.isRegionUSEastActive)
-            [_statusMenu addItem:[self regionItemWithRegion:kAWSUSEastRegion
-                                                       info:[dataSource instanceCountInRegionStringRepresentation:kAWSUSEastRegion hideTerminatedInstances:hideTerminatedInstances]]];
-        if (userDefaults.isRegionUSWestNorthCaliforniaActive)
-            [_statusMenu addItem:[self regionItemWithRegion:kAWSUSWestNorthCaliforniaRegion
-                                                       info:[dataSource instanceCountInRegionStringRepresentation:kAWSUSWestNorthCaliforniaRegion hideTerminatedInstances:hideTerminatedInstances]]];
-        if (userDefaults.isRegionUSWestOregonActive)
-            [_statusMenu addItem:[self regionItemWithRegion:kAWSUSWestOregonRegion
-                                                       info:[dataSource instanceCountInRegionStringRepresentation:kAWSUSWestOregonRegion hideTerminatedInstances:hideTerminatedInstances]]];
-        if (userDefaults.isRegionUSGovCloudActive)
-            [_statusMenu addItem:[self regionItemWithRegion:kAWSUSGovCloudRegion
-                                                       info:[dataSource instanceCountInRegionStringRepresentation:kAWSUSGovCloudRegion hideTerminatedInstances:hideTerminatedInstances]]];
-        if (userDefaults.isRegionEUActive)
-            [_statusMenu addItem:[self regionItemWithRegion:kAWSEURegion
-                                                       info:[dataSource instanceCountInRegionStringRepresentation:kAWSEURegion hideTerminatedInstances:hideTerminatedInstances]]];
-        if (userDefaults.isRegionAsiaPacificSingaporeActive)
-            [_statusMenu addItem:[self regionItemWithRegion:kAWSAsiaPacificSingaporeRegion
-                                                       info:[dataSource instanceCountInRegionStringRepresentation:kAWSAsiaPacificSingaporeRegion hideTerminatedInstances:hideTerminatedInstances]]];
-        if (userDefaults.isRegionAsiaPacificJapanActive)
-            [_statusMenu addItem:[self regionItemWithRegion:kAWSAsiaPacificJapanRegion
-                                                       info:[dataSource instanceCountInRegionStringRepresentation:kAWSAsiaPacificJapanRegion hideTerminatedInstances:hideTerminatedInstances]]];
-        if (userDefaults.isRegionSouthAmericaSaoPauloActive)
-            [_statusMenu addItem:[self regionItemWithRegion:kAWSSouthAmericaSaoPauloRegion
-                                                       info:[dataSource instanceCountInRegionStringRepresentation:kAWSSouthAmericaSaoPauloRegion hideTerminatedInstances:hideTerminatedInstances]]];
+        for (NSString *awsRegion in [userDefaults activeAWSRegions]) {
+            [_statusMenu addItem:[self regionItemWithRegion:awsRegion
+                                                       info:[dataSource instanceCountInRegionStringRepresentation:awsRegion hideTerminatedInstances:hideTerminatedInstances]]];
+        }
 
 		// Refresh
 		
@@ -428,7 +409,7 @@ static NSImage *_brImage;
             else {
                 // there are no instances
                 
-                NSString *awsRegionName = [AWSRequest regionTitleForRegion:[[NSUserDefaults standardUserDefaults] awsRegion]];
+                NSString *awsRegionName = AWSRegionTitle([[NSUserDefaults standardUserDefaults] awsRegion]);
                 [_statusMenu addItem:[self notificationMessageItemWithTitle:
                                       [NSString stringWithFormat:@"No instances in\n%@ region.", awsRegionName]]];
                 
@@ -453,7 +434,7 @@ static NSImage *_brImage;
 
         BOOL hideTerminatedInstances = [[NSUserDefaults standardUserDefaults] isHideTerminatedInstances];
 
-        for (NSString *awsRegion in [AWSRequest regions]) {
+        for (NSString *awsRegion in AWSRegions()) {
             NSUInteger menuItemIdx = [[_statusMenu itemArray] indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop) {
                 *stop = [[obj representedObject] isEqualToString:awsRegion];
                 return *stop;
@@ -612,92 +593,36 @@ static NSImage *_brImage;
 	return menuItem;
 }
 
+- (NSImage *)imageForRegion:(NSString *)awsRegion
+{
+    // flags shipped with Elastics 1.x; regions without a matching flag get no image
+    if ([awsRegion hasPrefix:@"us-"])
+        return _usImage;
+    if ([awsRegion hasPrefix:@"eu-"])
+        return _euImage;
+    if ([awsRegion isEqualToString:@"ap-southeast-1"])
+        return _sgImage;
+    if ([awsRegion isEqualToString:@"ap-northeast-1"] || [awsRegion isEqualToString:@"ap-northeast-3"])
+        return _jpImage;
+    if ([awsRegion isEqualToString:@"sa-east-1"])
+        return _brImage;
+    return nil;
+}
+
 - (NSMenuItem *)regionItemWithRegion:(NSString *)awsRegion info:(NSString *)info
 {
     NSInteger currentRegion = [[NSUserDefaults standardUserDefaults] region];
-    NSMenuItem *item = nil;
-    
-    if ([awsRegion isEqualToString:kAWSUSEastRegion]) {
-        // US East (Virginia)
-        item = [self actionItemWithLabel:kAWSUSEastRegionTitle
-                                    info:info
-                                  action:@selector(selectRegionAction:)];
-        [item setImage:_usImage];
-        [item setTag:kPreferencesAWSUSEastRegion];
-        [item setRepresentedObject:kAWSUSEastRegion];
-        [item setState:kPreferencesAWSUSEastRegion == currentRegion ? NSOnState : NSOffState];
-    }
-    else if ([awsRegion isEqualToString:kAWSUSWestNorthCaliforniaRegion]) {
-        // US West (North California)
-        item = [self actionItemWithLabel:kAWSUSWestNorthCaliforniaRegionTitle
-                                    info:info
-                                  action:@selector(selectRegionAction:)];
-        [item setImage:_usImage];
-        [item setTag:kPreferencesAWSUSWestNorthCaliforniaRegion];
-        [item setRepresentedObject:kAWSUSWestNorthCaliforniaRegion];
-        [item setState:kPreferencesAWSUSWestNorthCaliforniaRegion == currentRegion ? NSOnState : NSOffState];
-    }
-    else if ([awsRegion isEqualToString:kAWSUSWestOregonRegion]) {
-        // US West (Oregon)
-        item = [self actionItemWithLabel:kAWSUSWestOregonRegionTitle
-                                    info:info
-                                  action:@selector(selectRegionAction:)];
-        [item setImage:_usImage];
-        [item setTag:kPreferencesAWSUSWestOregonRegion];
-        [item setRepresentedObject:kAWSUSWestOregonRegion];
-        [item setState:kPreferencesAWSUSWestOregonRegion == currentRegion ? NSOnState : NSOffState];
-    }
-    else if ([awsRegion isEqualToString:kAWSEURegion]) {
-        // EU West (Ireland)
-        item = [self actionItemWithLabel:kAWSEURegionTitle
-                                    info:info
-                                  action:@selector(selectRegionAction:)];
-        [item setImage:_euImage];
-        [item setTag:kPreferencesAWSEURegion];
-        [item setRepresentedObject:kAWSEURegion];
-        [item setState:kPreferencesAWSEURegion == currentRegion ? NSOnState : NSOffState];
-    }
-    else if ([awsRegion isEqualToString:kAWSAsiaPacificSingaporeRegion]) {
-        // Asia Pacific (Singapore)
-        item = [self actionItemWithLabel:kAWSAsiaPacificSingaporeRegionTitle
-                                    info:info
-                                  action:@selector(selectRegionAction:)];
-        [item setImage:_sgImage];
-        [item setTag:kPreferencesAWSAsiaPacificSingaporeRegion];
-        [item setRepresentedObject:kAWSAsiaPacificSingaporeRegion];
-        [item setState:kPreferencesAWSAsiaPacificSingaporeRegion == currentRegion ? NSOnState : NSOffState];
-    }
-    else if ([awsRegion isEqualToString:kAWSAsiaPacificJapanRegion]) {
-        // Asia Pacific (Japan)
-        item = [self actionItemWithLabel:kAWSAsiaPacificJapanRegionTitle
-                                    info:info
-                                  action:@selector(selectRegionAction:)];
-        [item setImage:_jpImage];
-        [item setTag:kPreferencesAWSAsiaPacificJapanRegion];
-        [item setRepresentedObject:kAWSAsiaPacificJapanRegion];
-        [item setState:kPreferencesAWSAsiaPacificJapanRegion == currentRegion ? NSOnState : NSOffState];
-    }
-    else if ([awsRegion isEqualToString:kAWSSouthAmericaSaoPauloRegion]) {
-        // South America (Sao Paulo)
-        item = [self actionItemWithLabel:kAWSSouthAmericaSaoPauloRegionTitle
-                                    info:info
-                                  action:@selector(selectRegionAction:)];
-        [item setImage:_brImage];
-        [item setTag:kPreferencesAWSSouthAmericaSaoPauloRegion];
-        [item setRepresentedObject:kAWSSouthAmericaSaoPauloRegion];
-        [item setState:kPreferencesAWSSouthAmericaSaoPauloRegion == currentRegion ? NSOnState : NSOffState];
-    }
-    else if ([awsRegion isEqualToString:kAWSUSGovCloudRegion]) {
-        // US GovCloud
-        item = [self actionItemWithLabel:kAWSUSGovCloudRegionTitle
-                                    info:info
-                                  action:@selector(selectRegionAction:)];
-        [item setImage:_usImage];
-        [item setTag:kPreferencesAWSUSGovCloudRegion];
-        [item setRepresentedObject:kAWSUSGovCloudRegion];
-        [item setState:kPreferencesAWSUSGovCloudRegion == currentRegion ? NSOnState : NSOffState];
-    }
-    
+    NSInteger regionIndex = AWSRegionPreferenceIndex(awsRegion);
+    NSString *title = AWSRegionTitle(awsRegion);
+
+    NSMenuItem *item = [self actionItemWithLabel:(title ? title : awsRegion)
+                                            info:info
+                                          action:@selector(selectRegionAction:)];
+    [item setImage:[self imageForRegion:awsRegion]];
+    [item setTag:regionIndex];
+    [item setRepresentedObject:awsRegion];
+    [item setState:regionIndex == currentRegion ? NSOnState : NSOffState];
+
     return item;
 }
 

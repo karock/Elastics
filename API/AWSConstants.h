@@ -9,25 +9,17 @@
 // AWS domain
 extern NSString *const kAWSDomain;
 
-// Regions
+// Default region
 extern NSString *const kAWSUSEastRegion;
-extern NSString *const kAWSUSWestNorthCaliforniaRegion;
-extern NSString *const kAWSUSWestOregonRegion;
-extern NSString *const kAWSEURegion;
-extern NSString *const kAWSAsiaPacificSingaporeRegion;
-extern NSString *const kAWSAsiaPacificJapanRegion;
-extern NSString *const kAWSSouthAmericaSaoPauloRegion;
-extern NSString *const kAWSUSGovCloudRegion;
 
-// Region titles
-extern NSString *const kAWSUSEastRegionTitle;
-extern NSString *const kAWSUSWestNorthCaliforniaRegionTitle;
-extern NSString *const kAWSUSWestOregonRegionTitle;
-extern NSString *const kAWSEURegionTitle;
-extern NSString *const kAWSAsiaPacificSingaporeRegionTitle;
-extern NSString *const kAWSAsiaPacificJapanRegionTitle;
-extern NSString *const kAWSSouthAmericaSaoPauloRegionTitle;
-extern NSString *const kAWSUSGovCloudRegionTitle;
+// Known regions (commercial "aws" partition plus AWS GovCloud (US)), in display order.
+// Each region also has a stable preference index: the number Elastics stores as the
+// selected region. Indices 0-7 are the values Elastics 1.x used and must not change;
+// newer regions are appended with new indices.
+NSArray *AWSRegions(void);                                  // region ids, e.g. @"us-east-1"
+NSString *AWSRegionTitle(NSString *region);                 // e.g. @"US East (N. Virginia)", nil if unknown
+NSInteger AWSRegionPreferenceIndex(NSString *region);       // NSNotFound if unknown
+NSString *AWSRegionForPreferenceIndex(NSInteger index);     // nil if unknown
 
 // Services
 extern NSString *const kAWSEC2Service;

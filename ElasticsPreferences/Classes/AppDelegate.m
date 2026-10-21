@@ -12,6 +12,7 @@
 #import "RefreshIntervalLabelValueTransformer.h"
 #import "SshPortValueTransformer.h"
 #import "Account.h"
+#import "AWSConstants.h"
 
 enum {
     kGeneralPaneIndex,
@@ -35,6 +36,9 @@ static NSString *const kElasticsSendFeedbackURL = @"mailto:support@tundrabot.com
 - (void)showPreferencePane:(NSUInteger)paneIndex animated:(BOOL)animated;
 - (void)addContentSubview:(NSView *)view;
 - (void)preferencesShouldTerminate:(NSNotification *)notification;
+- (void)buildRegionsPane;
+- (void)updateRegionCheckboxes;
+- (void)regionCheckboxAction:(id)sender;
 
 - (NSString *)_accountPanelNameValue;
 - (NSString *)_accountPanelAccessKeyIDValue;
@@ -47,7 +51,9 @@ static NSString *const kElasticsSendFeedbackURL = @"mailto:support@tundrabot.com
 @end
 
 
-@implementation AppDelegate
+@implementation AppDelegate {
+    NSMutableArray *_regionCheckboxes;
+}
 
 @synthesize window = _window;
 @synthesize generalPane = _generalPane;
@@ -104,6 +110,7 @@ static NSString *const kElasticsSendFeedbackURL = @"mailto:support@tundrabot.com
 - (void)dealloc
 {
     [_lastValidSshPortValue release];
+    [_regionCheckboxes release];
     [super dealloc];
 }
 
@@ -118,6 +125,7 @@ static NSString *const kElasticsSendFeedbackURL = @"mailto:support@tundrabot.com
 	// show General pane on launch
 	[_accountsTableView setTarget:self];
 	[_accountsTableView	setDoubleAction:@selector(editAccountAction:)];
+	[self buildRegionsPane];
 	[self showPreferencePane:kGeneralPaneIndex animated:NO];
 	
 	NSNotificationCenter *notificationCenter = [NSNotificationCenter defaultCenter];
@@ -548,54 +556,76 @@ enum {
 						contextInfo:NULL];
 }
 
-#pragma mark - Binding helpers for regions
+#pragma mark - Regions pane
 
-- (BOOL)isRegionUSEastEnabled
+// Elastics 1.x had eight hard-wired region checkboxes (bound to the regionXxxEnabled
+// properties) in MainMenu.xib. Replace them at launch with one checkbox per region in
+// AWSRegions(), laid out in two columns, so the list can grow without editing the nib.
+- (void)buildRegionsPane
 {
+    NSTextField *label = nil;
+    for (NSView *view in [[[_regionsPane subviews] copy] autorelease]) {
+        if ([view isKindOfClass:[NSButton class]]) {
+            [view unbind:NSValueBinding];
+            [view unbind:NSEnabledBinding];
+            [view removeFromSuperview];
+        }
+        else if ([view isKindOfClass:[NSTextField class]]) {
+            label = (NSTextField *)view;
+        }
+    }
+
+    NSArray *regions = AWSRegions();
+    NSUInteger rows = ([regions count] + 1) / 2;
+    const CGFloat margin = 20.f, labelGap = 8.f, rowHeight = 20.f, columnWidth = 225.f;
+    CGFloat labelHeight = label ? NSHeight([label frame]) : 0.f;
+    CGFloat paneHeight = margin + labelHeight + labelGap + rows * rowHeight + margin;
+
+    [_regionsPane setFrameSize:NSMakeSize(NSWidth([_regionsPane frame]), paneHeight)];
+    if (label)
+        [label setFrameOrigin:NSMakePoint(NSMinX([label frame]), paneHeight - margin - labelHeight)];
+
+    [_regionCheckboxes release];
+    _regionCheckboxes = [[NSMutableArray alloc] initWithCapacity:[regions count]];
+
     NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-    return !userDefaults.isRegionUSEastActive || [userDefaults.activeRegions count] > 1;
+    [regions enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+        NSString *awsRegion = (NSString *)obj;
+        NSUInteger column = idx / rows, row = idx % rows;
+
+        NSButton *checkbox = [NSButton checkboxWithTitle:AWSRegionTitle(awsRegion)
+                                                  target:self
+                                                  action:@selector(regionCheckboxAction:)];
+        [checkbox setIdentifier:awsRegion];
+        [checkbox setToolTip:awsRegion];
+        [checkbox setState:[userDefaults isAWSRegionActive:awsRegion] ? NSControlStateValueOn : NSControlStateValueOff];
+        [checkbox setFrame:NSMakeRect(margin + column * columnWidth,
+                                      paneHeight - margin - labelHeight - labelGap - (row + 1) * rowHeight,
+                                      columnWidth - 5.f,
+                                      rowHeight)];
+        [_regionsPane addSubview:checkbox];
+        [_regionCheckboxes addObject:checkbox];
+    }];
+
+    [self updateRegionCheckboxes];
 }
 
-- (BOOL)isRegionUSWestNorthCaliforniaEnabled
+// At least one region must stay active: disable the last checked box.
+- (void)updateRegionCheckboxes
 {
-    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-    return !userDefaults.isRegionUSWestNorthCaliforniaActive || [userDefaults.activeRegions count] > 1;
+    BOOL moreThanOneActiveRegion = [[[NSUserDefaults standardUserDefaults] activeAWSRegions] count] > 1;
+
+    for (NSButton *checkbox in _regionCheckboxes) {
+        [checkbox setEnabled:[checkbox state] == NSControlStateValueOff || moreThanOneActiveRegion];
+    }
 }
 
-- (BOOL)isRegionUSWestOregonEnabled
+- (void)regionCheckboxAction:(id)sender
 {
-    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-    return !userDefaults.isRegionUSWestOregonActive || [userDefaults.activeRegions count] > 1;
-}
-
-- (BOOL)isRegionEUEnabled
-{
-    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-    return !userDefaults.isRegionEUActive || [userDefaults.activeRegions count] > 1;
-}
-
-- (BOOL)isRegionAsiaPacificSingaporeEnabled
-{
-    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-    return !userDefaults.isRegionAsiaPacificSingaporeActive || [userDefaults.activeRegions count] > 1;
-}
-
-- (BOOL)isRegionAsiaPacificJapanEnabled
-{
-    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-    return !userDefaults.isRegionAsiaPacificJapanActive || [userDefaults.activeRegions count] > 1;
-}
-
-- (BOOL)isRegionSouthAmericaSaoPauloEnabled
-{
-    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-    return !userDefaults.isRegionSouthAmericaSaoPauloActive || [userDefaults.activeRegions count] > 1;
-}
-
-- (BOOL)isRegionUSGovCloudEnabled
-{
-    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-    return !userDefaults.isRegionUSGovCloudActive || [userDefaults.activeRegions count] > 1;
+    NSButton *checkbox = (NSButton *)sender;
+    [[NSUserDefaults standardUserDefaults] setAWSRegion:[checkbox identifier]
+                                                 active:[checkbox state] == NSControlStateValueOn];
+    [self updateRegionCheckboxes];
 }
 
 #pragma mark - Actions
@@ -635,19 +665,9 @@ enum {
 	}
 }
 
+// Target of the original nib checkboxes, which buildRegionsPane removes; kept so the nib loads.
 - (IBAction)toggleRegionEnabledAction:(id)sender
 {
-    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-    BOOL moreThanOneActiveRegion = [[userDefaults activeRegions] count] > 1;
-
-    self.regionUSEastEnabled = !userDefaults.regionUSEastActive || moreThanOneActiveRegion;
-    self.regionUSWestNorthCaliforniaEnabled = !userDefaults.regionUSWestNorthCaliforniaActive || moreThanOneActiveRegion;
-    self.regionUSWestOregonEnabled = !userDefaults.regionUSWestOregonActive || moreThanOneActiveRegion;
-    self.regionEUEnabled = !userDefaults.regionEUActive || moreThanOneActiveRegion;
-    self.regionAsiaPacificSingaporeEnabled = !userDefaults.regionAsiaPacificSingaporeActive || moreThanOneActiveRegion;
-    self.regionAsiaPacificJapanEnabled = !userDefaults.regionAsiaPacificJapanActive || moreThanOneActiveRegion;
-    self.regionSouthAmericaSaoPauloEnabled = !userDefaults.regionSouthAmericaSaoPauloActive || moreThanOneActiveRegion;
-    self.regionUSGovCloudEnabled = !userDefaults.regionUSGovCloudActive || moreThanOneActiveRegion;
 }
 
 - (IBAction)chooseAccountKeypairAction:(id)sender
