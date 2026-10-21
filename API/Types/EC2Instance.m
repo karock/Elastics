@@ -26,6 +26,9 @@
 @property (nonatomic, retain) NSString *ipAddress;
 @property (nonatomic, retain) NSArray *tagSet;
 @property (nonatomic, retain) NSArray *instanceGroupSet;
+@property (nonatomic, retain) NSString *instanceLifecycle;
+@property (nonatomic, retain) NSString *stateReasonMessage;
+@property (nonatomic, retain) NSString *stateTransitionReason;
 @end
 
 @implementation EC2Instance
@@ -43,6 +46,9 @@
 @synthesize ipAddress = _ipAddress;
 @synthesize tagSet = _tagSet;
 @synthesize instanceGroupSet = _instanceGroupSet;
+@synthesize instanceLifecycle = _instanceLifecycle;
+@synthesize stateReasonMessage = _stateReasonMessage;
+@synthesize stateTransitionReason = _stateTransitionReason;
 
 - (id)initFromXMLElement:(TBXMLElement *)element parent:(AWSType *)parent
 {
@@ -80,6 +86,15 @@
 				self.tagSet = [self parseElement:element asArrayOf:[EC2Tag class]];
 			else if ([elementName isEqualToString:@"groupSet"])
 				self.instanceGroupSet = [self parseElement:element asArrayOf:[EC2Group class]];
+			else if ([elementName isEqualToString:@"instanceLifecycle"])
+				self.instanceLifecycle = [TBXML textForElement:element];
+			else if ([elementName isEqualToString:@"reason"])
+				self.stateTransitionReason = [TBXML textForElement:element];
+			else if ([elementName isEqualToString:@"stateReason"]) {
+				TBXMLElement *messageElement = [TBXML childElementNamed:@"message" parentElement:element];
+				if (messageElement)
+					self.stateReasonMessage = [TBXML textForElement:messageElement];
+			}
 
 			element = element->nextSibling;
 		}
@@ -103,6 +118,9 @@
 	TBRelease(_ipAddress);
 	TBRelease(_tagSet);
 	TBRelease(_instanceGroupSet);
+	TBRelease(_instanceLifecycle);
+	TBRelease(_stateReasonMessage);
+	TBRelease(_stateTransitionReason);
 	[super dealloc];
 }
 
@@ -124,6 +142,37 @@
 	}
 
 	return [names count] ? [names componentsJoinedByString:@", "] : nil;
+}
+
+- (NSString *)lifecycleTitle
+{
+	if ([_instanceLifecycle length] == 0)
+		return @"On-Demand";
+	if ([_instanceLifecycle isEqualToString:@"spot"])
+		return @"Spot";
+	if ([_instanceLifecycle isEqualToString:@"scheduled"])
+		return @"Scheduled";
+	if ([_instanceLifecycle isEqualToString:@"capacity-block"])
+		return @"Capacity Block";
+	if ([_instanceLifecycle isEqualToString:@"interruptible-capacity-reservation"])
+		return @"Interruptible";
+	return _instanceLifecycle;
+}
+
+- (NSString *)stateReasonTitle
+{
+	// stateReason/message reads "Client.UserInitiatedShutdown: User initiated shutdown";
+	// show the part after the code
+	NSString *message = [_stateReasonMessage stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+	if ([message length]) {
+		NSRange separator = [message rangeOfString:@": "];
+		if (separator.location != NSNotFound && NSMaxRange(separator) < [message length])
+			message = [message substringFromIndex:NSMaxRange(separator)];
+		return message;
+	}
+
+	NSString *reason = [_stateTransitionReason stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+	return [reason length] ? reason : nil;
 }
 
 - (NSString *)nameTag

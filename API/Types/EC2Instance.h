@@ -27,6 +27,9 @@
 	NSString			*_privateIpAddress;
 	NSString			*_ipAddress;
 	NSArray				*_tagSet;   // EC2Tag
+	NSString			*_instanceLifecycle;
+	NSString			*_stateReasonMessage;
+	NSString			*_stateTransitionReason;
 	NSArray				*_instanceGroupSet;   // EC2Group, security groups of the instance itself
 }
 
@@ -42,6 +45,13 @@
 @property (nonatomic, retain, readonly) NSString *privateIpAddress;
 @property (nonatomic, retain, readonly) NSString *ipAddress;
 @property (nonatomic, retain, readonly) NSArray *tagSet;
+@property (nonatomic, retain, readonly) NSString *instanceLifecycle;      // spot, scheduled, capacity-block, ...; nil for On-Demand
+@property (nonatomic, retain, readonly) NSString *stateReasonMessage;     // stateReason/message, e.g. "Client.UserInitiatedShutdown: User initiated shutdown"
+@property (nonatomic, retain, readonly) NSString *stateTransitionReason;  // reason, e.g. "User initiated (2026-10-21 10:00:00 GMT)"
+
+// Display helpers
+- (NSString *)lifecycleTitle;     // "On-Demand", "Spot", ...
+- (NSString *)stateReasonTitle;   // readable reason for the last state change, or nil
 
 // List of Security Groups from owning reservation
 // Security groups: the instance's own groupSet (the only one filled in for VPC
