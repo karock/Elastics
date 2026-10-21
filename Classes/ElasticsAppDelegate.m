@@ -11,7 +11,6 @@
 #import "ChartView.h"
 #import "Preferences.h"
 #import "AccountsManager.h"
-#import "ValidateReceipt.h"
 #import "Constants.h"
 
 //const CGFloat kActionItemTableWidth             = 180.;
@@ -125,7 +124,6 @@ static NSImage *_brImage;
 + (void)initialize
 {
 	TB_VALIDATE_EXPIRATION_DATE();
-	TB_VALIDATE_RECEIPT();
 	
 	if (!_titleColor)               _titleColor = [[NSColor colorWithDeviceRed:(0.f/255.f) green:(112.f/255.f) blue:(180.f/255.f) alpha:1.f] retain];
 	if (!_taggedInstanceColor)      _taggedInstanceColor = [[NSColor blackColor] retain];

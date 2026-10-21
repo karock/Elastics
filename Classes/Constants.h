@@ -9,9 +9,6 @@
 // Keychain API service name
 extern NSString *const kElasticsSecServiceName;
 
-// Hardcoded values for receipt validation
+// Hardcoded bundle values
 extern NSString *const kElasticsBundleShortVersionString;
 extern NSString *const kElasticsBundleIdentifier;
-
-// Path to a sample receipt for testing
-extern NSString *const kElasticsSampleReceiptPath;
