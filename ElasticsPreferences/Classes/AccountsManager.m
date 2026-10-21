@@ -194,7 +194,7 @@
     [secretAccessKeyCopy release];
     [sshPrivateKeyFileCopy release];
     [sshUserNameCopy release];
-    [sshOptions release];
+    [sshOptionsCopy release];
 
     return status;
 }
