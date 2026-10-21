@@ -36,5 +36,7 @@
 	<string>NSApplication</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Elastics opens SSH sessions to your instances in Terminal or iTerm.</string>
 </dict>
 </plist>
