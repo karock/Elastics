@@ -27,6 +27,9 @@
 @property (nonatomic, retain) NSArray *tagSet;
 @property (nonatomic, retain) NSArray *instanceGroupSet;
 @property (nonatomic, retain) NSString *instanceLifecycle;
+@property (nonatomic, retain) NSString *rootDeviceType;
+@property (nonatomic, retain) NSString *rootDeviceName;
+@property (nonatomic, retain) NSArray *blockDeviceMapping;
 @property (nonatomic, retain) NSString *stateReasonMessage;
 @property (nonatomic, retain) NSString *stateTransitionReason;
 @end
@@ -47,6 +50,9 @@
 @synthesize tagSet = _tagSet;
 @synthesize instanceGroupSet = _instanceGroupSet;
 @synthesize instanceLifecycle = _instanceLifecycle;
+@synthesize rootDeviceType = _rootDeviceType;
+@synthesize rootDeviceName = _rootDeviceName;
+@synthesize blockDeviceMapping = _blockDeviceMapping;
 @synthesize stateReasonMessage = _stateReasonMessage;
 @synthesize stateTransitionReason = _stateTransitionReason;
 
@@ -86,6 +92,12 @@
 				self.tagSet = [self parseElement:element asArrayOf:[EC2Tag class]];
 			else if ([elementName isEqualToString:@"groupSet"])
 				self.instanceGroupSet = [self parseElement:element asArrayOf:[EC2Group class]];
+			else if ([elementName isEqualToString:@"rootDeviceType"])
+				self.rootDeviceType = [TBXML textForElement:element];
+			else if ([elementName isEqualToString:@"rootDeviceName"])
+				self.rootDeviceName = [TBXML textForElement:element];
+			else if ([elementName isEqualToString:@"blockDeviceMapping"])
+				self.blockDeviceMapping = [self parseElement:element asArrayOf:[EC2BlockDevice class]];
 			else if ([elementName isEqualToString:@"instanceLifecycle"])
 				self.instanceLifecycle = [TBXML textForElement:element];
 			else if ([elementName isEqualToString:@"reason"])
@@ -119,6 +131,9 @@
 	TBRelease(_tagSet);
 	TBRelease(_instanceGroupSet);
 	TBRelease(_instanceLifecycle);
+	TBRelease(_rootDeviceType);
+	TBRelease(_rootDeviceName);
+	TBRelease(_blockDeviceMapping);
 	TBRelease(_stateReasonMessage);
 	TBRelease(_stateTransitionReason);
 	[super dealloc];

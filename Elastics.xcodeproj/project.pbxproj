@@ -18,11 +18,15 @@
 		67CF694CB512832DA52850DA /* AWSSignatureV4.m in Sources */ = {isa = PBXBuildFile; fileRef = 8B0C4E1B8DED21DA7695A50B /* AWSSignatureV4.m */; };
 		C32C295E12C0C60900F2C136 /* AWSRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C290D12C0C60900F2C136 /* AWSRequest.m */; };
 		C32C296412C0C60900F2C136 /* EC2DescribeInstancesRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C291A12C0C60900F2C136 /* EC2DescribeInstancesRequest.m */; };
+		59A39439BDACB24F51CB9273 /* EC2DescribeVolumesRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 7DE26F2E06B018AD56CFBCBA /* EC2DescribeVolumesRequest.m */; };
 		C32C296A12C0C60900F2C136 /* EC2DescribeInstancesResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C292712C0C60900F2C136 /* EC2DescribeInstancesResponse.m */; };
+		81B29238892130C6252A9473 /* EC2DescribeVolumesResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = 2EEC9246A4A2649392C71413 /* EC2DescribeVolumesResponse.m */; };
 		C32C296D12C0C60900F2C136 /* AWSResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C292D12C0C60900F2C136 /* AWSResponse.m */; };
 		C32C297412C0C60900F2C136 /* EC2Instance.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C293C12C0C60900F2C136 /* EC2Instance.m */; };
 		C32C297712C0C60900F2C136 /* EC2InstanceState.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C294212C0C60900F2C136 /* EC2InstanceState.m */; };
 		C32C298112C0C60900F2C136 /* EC2Tag.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C295612C0C60900F2C136 /* EC2Tag.m */; };
+		E2878B13C757CB7AA5822C2C /* EC2Volume.m in Sources */ = {isa = PBXBuildFile; fileRef = ACEF2D63C01F680C0C2B00B9 /* EC2Volume.m */; };
+		EDA2AA6CB4A1225F6B4FBE5D /* EC2BlockDevice.m in Sources */ = {isa = PBXBuildFile; fileRef = 6C1D356C3DA0CE70A7C3EBB1 /* EC2BlockDevice.m */; };
 		C32C298C12C0C63900F2C136 /* NSDataAdditions.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C298912C0C63900F2C136 /* NSDataAdditions.m */; };
 		C32C298D12C0C63900F2C136 /* TBXML.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C298B12C0C63900F2C136 /* TBXML.m */; };
 		C32C299E12C0C7FF00F2C136 /* AWSType.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C299D12C0C7FF00F2C136 /* AWSType.m */; };
@@ -143,8 +147,12 @@
 		C32C290D12C0C60900F2C136 /* AWSRequest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AWSRequest.m; sourceTree = "<group>"; };
 		C32C291912C0C60900F2C136 /* EC2DescribeInstancesRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EC2DescribeInstancesRequest.h; sourceTree = "<group>"; };
 		C32C291A12C0C60900F2C136 /* EC2DescribeInstancesRequest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = EC2DescribeInstancesRequest.m; sourceTree = "<group>"; };
+		7DE26F2E06B018AD56CFBCBA /* EC2DescribeVolumesRequest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = EC2DescribeVolumesRequest.m; sourceTree = "<group>"; };
+		A8AB3808DD8C3F9DEFE12E4F /* EC2DescribeVolumesRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EC2DescribeVolumesRequest.h; sourceTree = "<group>"; };
 		C32C292612C0C60900F2C136 /* EC2DescribeInstancesResponse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EC2DescribeInstancesResponse.h; sourceTree = "<group>"; };
 		C32C292712C0C60900F2C136 /* EC2DescribeInstancesResponse.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = EC2DescribeInstancesResponse.m; sourceTree = "<group>"; };
+		2EEC9246A4A2649392C71413 /* EC2DescribeVolumesResponse.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = EC2DescribeVolumesResponse.m; sourceTree = "<group>"; };
+		75367B2F0A6944A4069EEC66 /* EC2DescribeVolumesResponse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EC2DescribeVolumesResponse.h; sourceTree = "<group>"; };
 		C32C292C12C0C60900F2C136 /* AWSResponse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AWSResponse.h; sourceTree = "<group>"; };
 		C32C292D12C0C60900F2C136 /* AWSResponse.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AWSResponse.m; sourceTree = "<group>"; };
 		C32C293B12C0C60900F2C136 /* EC2Instance.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EC2Instance.h; sourceTree = "<group>"; };
@@ -153,6 +161,10 @@
 		C32C294212C0C60900F2C136 /* EC2InstanceState.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = EC2InstanceState.m; sourceTree = "<group>"; };
 		C32C295512C0C60900F2C136 /* EC2Tag.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EC2Tag.h; sourceTree = "<group>"; };
 		C32C295612C0C60900F2C136 /* EC2Tag.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = EC2Tag.m; sourceTree = "<group>"; };
+		ACEF2D63C01F680C0C2B00B9 /* EC2Volume.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = EC2Volume.m; sourceTree = "<group>"; };
+		CC2385DFDB1390278609EB83 /* EC2Volume.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EC2Volume.h; sourceTree = "<group>"; };
+		6C1D356C3DA0CE70A7C3EBB1 /* EC2BlockDevice.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = EC2BlockDevice.m; sourceTree = "<group>"; };
+		5DEADE97E9AC068152333867 /* EC2BlockDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EC2BlockDevice.h; sourceTree = "<group>"; };
 		C32C298812C0C63900F2C136 /* NSDataAdditions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NSDataAdditions.h; sourceTree = "<group>"; };
 		C32C298912C0C63900F2C136 /* NSDataAdditions.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NSDataAdditions.m; sourceTree = "<group>"; };
 		C32C298A12C0C63900F2C136 /* TBXML.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TBXML.h; sourceTree = "<group>"; };
@@ -379,6 +391,8 @@
 				C32C319312C21F1900F2C136 /* EC2Request.m */,
 				C32C291912C0C60900F2C136 /* EC2DescribeInstancesRequest.h */,
 				C32C291A12C0C60900F2C136 /* EC2DescribeInstancesRequest.m */,
+				7DE26F2E06B018AD56CFBCBA /* EC2DescribeVolumesRequest.m */,
+				A8AB3808DD8C3F9DEFE12E4F /* EC2DescribeVolumesRequest.h */,
 				C32C319512C21F7E00F2C136 /* MonitoringRequest.h */,
 				C32C319612C21F7E00F2C136 /* MonitoringRequest.m */,
 				C32C31D412C22D1C00F2C136 /* MonitoringGetMetricStatisticsRequest.h */,
@@ -402,6 +416,8 @@
 				C32C31E012C22DBA00F2C136 /* EC2Response.m */,
 				C32C292612C0C60900F2C136 /* EC2DescribeInstancesResponse.h */,
 				C32C292712C0C60900F2C136 /* EC2DescribeInstancesResponse.m */,
+				2EEC9246A4A2649392C71413 /* EC2DescribeVolumesResponse.m */,
+				75367B2F0A6944A4069EEC66 /* EC2DescribeVolumesResponse.h */,
 				C32C321512C2312E00F2C136 /* MonitoringResponse.h */,
 				C32C321612C2312E00F2C136 /* MonitoringResponse.m */,
 				C32C321812C2319D00F2C136 /* MonitoringGetMetricStatisticsResponse.h */,
@@ -431,6 +447,10 @@
 				C311E2DF14B1B177000CB004 /* EC2Placement.m */,
 				C32C295512C0C60900F2C136 /* EC2Tag.h */,
 				C32C295612C0C60900F2C136 /* EC2Tag.m */,
+				ACEF2D63C01F680C0C2B00B9 /* EC2Volume.m */,
+				CC2385DFDB1390278609EB83 /* EC2Volume.h */,
+				6C1D356C3DA0CE70A7C3EBB1 /* EC2BlockDevice.m */,
+				5DEADE97E9AC068152333867 /* EC2BlockDevice.h */,
 				C32C32F712C23FE000F2C136 /* MonitoringDatapoint.h */,
 				C32C32F812C23FE000F2C136 /* MonitoringDatapoint.m */,
 				C32C33C212C24F4200F2C136 /* MonitoringStatisticsResult.h */,
@@ -622,11 +642,15 @@
 				67CF694CB512832DA52850DA /* AWSSignatureV4.m in Sources */,
 				C32C295E12C0C60900F2C136 /* AWSRequest.m in Sources */,
 				C32C296412C0C60900F2C136 /* EC2DescribeInstancesRequest.m in Sources */,
+				59A39439BDACB24F51CB9273 /* EC2DescribeVolumesRequest.m in Sources */,
 				C32C296A12C0C60900F2C136 /* EC2DescribeInstancesResponse.m in Sources */,
+				81B29238892130C6252A9473 /* EC2DescribeVolumesResponse.m in Sources */,
 				C32C296D12C0C60900F2C136 /* AWSResponse.m in Sources */,
 				C32C297412C0C60900F2C136 /* EC2Instance.m in Sources */,
 				C32C297712C0C60900F2C136 /* EC2InstanceState.m in Sources */,
 				C32C298112C0C60900F2C136 /* EC2Tag.m in Sources */,
+				E2878B13C757CB7AA5822C2C /* EC2Volume.m in Sources */,
+				EDA2AA6CB4A1225F6B4FBE5D /* EC2BlockDevice.m in Sources */,
 				C32C298C12C0C63900F2C136 /* NSDataAdditions.m in Sources */,
 				C32C298D12C0C63900F2C136 /* TBXML.m in Sources */,
 				C32C299E12C0C7FF00F2C136 /* AWSType.m in Sources */,

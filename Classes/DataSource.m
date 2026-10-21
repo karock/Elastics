@@ -48,6 +48,7 @@ TB_SINGLETON(DataSource);
 	TBRelease(_runningRefreshes);
 	TBRelease(_instanceRequests);
 	TBRelease(_instanceMonitoringRequests);
+	TBRelease(_instanceVolumeRequests);
 	TBRelease(_instanceMonitoringMetrics);
 
 	[super dealloc];
@@ -84,12 +85,14 @@ TB_SINGLETON(DataSource);
 	TBRelease(_runningRefreshes);
 	TBRelease(_instanceRequests);
 	TBRelease(_instanceMonitoringRequests);
+	TBRelease(_instanceVolumeRequests);
 	TBRelease(_instanceMonitoringMetrics);
 
     _instanceMonitoringMetrics = [[NSSet alloc] initWithObjects:kAWSCPUUtilizationMetric, nil];
     _runningRefreshes = [[NSMutableDictionary alloc] init];
     _instanceRequests = [[NSMutableDictionary alloc] init];
     _instanceMonitoringRequests = [[NSMutableDictionary alloc] init];
+    _instanceVolumeRequests = [[NSMutableDictionary alloc] init];
 }
 
 - (BOOL)refreshCurrentRegionIgnoringAge:(BOOL)ignoreAge
@@ -227,6 +230,19 @@ TB_SINGLETON(DataSource);
 //				TBTrace(@"skipping instance %@ stats request with age %.2f", instanceId, [monitoringRequest age]);
 		}
 	
+		// volume details (size, type) for the Storage section; refreshed at most every
+		// kMaxStatisticsAge, so a denied DescribeVolumes is not retried on every menu open
+		EC2DescribeVolumesRequest *volumeRequest = [_instanceVolumeRequests objectForKey:instanceId];
+		if (!volumeRequest) {
+			volumeRequest = [[EC2DescribeVolumesRequest alloc] initWithOptions:nil delegate:self];
+			volumeRequest.region = currentRegion;
+			volumeRequest.instanceId = instanceId;
+			[_instanceVolumeRequests setObject:volumeRequest forKey:instanceId];
+			[volumeRequest release];
+		}
+		if (![volumeRequest isRunning] && (ignoreAge || [volumeRequest age] > kMaxStatisticsAge))
+			[requestSet addObject:volumeRequest];
+
 		// do we have anything scheduled?
 		if (![requestSet count])
             return NO;
@@ -337,6 +353,19 @@ TB_SINGLETON(DataSource);
 }
 
 #pragma mark - Data accessors and helpers
+
+- (NSDictionary *)volumesForInstance:(NSString *)instanceId
+{
+	EC2DescribeVolumesRequest *request = [_instanceVolumeRequests objectForKey:instanceId];
+	NSMutableDictionary *result = [NSMutableDictionary dictionary];
+
+	for (EC2Volume *volume in request.response.volumeSet) {
+		if (volume.volumeId)
+			[result setObject:volume forKey:volume.volumeId];
+	}
+
+	return result;
+}
 
 - (NSArray *)instances
 {
