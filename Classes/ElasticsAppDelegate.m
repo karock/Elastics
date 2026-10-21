@@ -955,7 +955,7 @@ static NSImage *_brImage;
 }
 
 // Storage rows: the root device type, then one row per attached EBS volume (root
-// first), labelled by device name. Size and type come from DescribeVolumes when it
+// first), labelled by device name, then the instance store disks of the instance type. Size and type come from DescribeVolumes when it
 // is permitted; otherwise the volume ID is shown. Clicking a volume copies its ID.
 - (NSArray *)storageItemsForInstance:(EC2Instance *)instance
 {
@@ -1017,6 +1017,37 @@ static NSImage *_brImage;
 										   tooltip:tooltip];
 		[item setRepresentedObject:device.volumeId];   // copied by copyToPasteboardAction:
 		[items addObject:item];
+	}
+
+	// instance store (ephemeral) disks: not in the block device mapping, so they come
+	// from the instance type; one row per disk size, e.g. "2 × 300 GB NVMe SSD"
+	EC2InstanceTypeInfo *typeInfo = [[DataSource sharedDataSource] instanceTypeInfoForInstanceType:instance.instanceType];
+	if (typeInfo.instanceStorageSupported) {
+		BOOL isNVMe = [typeInfo.nvmeSupport isEqualToString:@"supported"] || [typeInfo.nvmeSupport isEqualToString:@"required"];
+
+		NSMutableArray *extras = [NSMutableArray array];
+		if (typeInfo.totalSizeInGB > 0)
+			[extras addObject:[NSString stringWithFormat:@"%lld GB total", typeInfo.totalSizeInGB]];
+		if ([typeInfo.encryptionSupport isEqualToString:@"required"])
+			[extras addObject:@"encrypted at rest"];
+		[extras addObject:@"data is lost when the instance stops or terminates"];
+		NSString *tooltip = [NSString stringWithFormat:@"Instance store (ephemeral): %@", [extras componentsJoinedByString:@", "]];
+
+		for (EC2InstanceStoreDisk *disk in typeInfo.disks) {
+			NSMutableArray *parts = [NSMutableArray array];
+			[parts addObject:(disk.count > 1
+							  ? [NSString stringWithFormat:@"%ld \u00D7 %lld GB", (long)disk.count, disk.sizeInGB]
+							  : [NSString stringWithFormat:@"%lld GB", disk.sizeInGB])];
+			if (isNVMe)
+				[parts addObject:@"NVMe"];
+			if ([disk.type length])
+				[parts addObject:[disk.type uppercaseString]];
+
+			[items addObject:[self infoItemWithLabel:@"Instance Store"
+												info:[parts componentsJoinedByString:@" "]
+											  action:NULL
+											 tooltip:tooltip]];
+		}
 	}
 
 	return items;
