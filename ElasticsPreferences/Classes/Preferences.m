@@ -22,14 +22,34 @@ static NSString *const kPreferencesRefreshIntervalKey                       = @"
 static NSString *const kPreferencesRefreshOnMenuOpenKey                     = @"refreshOnMenuOpen";
 static NSString *const kPreferencesSortInstancesByTitleKey                  = @"sortInstancesByTitle";
 static NSString *const kPreferencesHideTerminatedInstancesKey               = @"hideTerminatedInstances";
-static NSString *const kPreferencesRegionUSEastActiveKey                    = @"regionUSEastActive";
-static NSString *const kPreferencesRegionUSWestNorthCaliforniaActiveKey     = @"regionUSWestNorthCaliforniaActive";
-static NSString *const kPreferencesRegionUSWestOregonActiveKey              = @"regionUSWestOregonActive";
-static NSString *const kPreferencesRegionEUActiveKey                        = @"regionEUActive";
-static NSString *const kPreferencesRegionAsiaPacificSingaporeActiveKey      = @"regionAsiaPacificSingaporeActive";
-static NSString *const kPreferencesRegionAsiaPacificJapanActiveKey          = @"regionAsiaPacificJapanActive";
-static NSString *const kPreferencesRegionSouthAmericaSaoPauloActiveKey      = @"regionSouthAmericaSaoPauloActive";
-static NSString *const kPreferencesRegionUSGovCloudActiveKey                = @"regionUSGovCloudActive";
+// Per-region "active" flags. Elastics 1.x stored these under the names below for its
+// original eight regions; keep using them so existing settings carry over. Regions
+// added later use "regionActive-<region id>" and default to inactive.
+static NSDictionary *PreferencesLegacyRegionActiveKeys(void)
+{
+    static NSDictionary *keys = nil;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        keys = [[NSDictionary alloc] initWithObjectsAndKeys:
+                @"regionUSEastActive",                  @"us-east-1",
+                @"regionUSWestNorthCaliforniaActive",   @"us-west-1",
+                @"regionUSWestOregonActive",            @"us-west-2",
+                @"regionEUActive",                      @"eu-west-1",
+                @"regionAsiaPacificSingaporeActive",    @"ap-southeast-1",
+                @"regionAsiaPacificJapanActive",        @"ap-northeast-1",
+                @"regionSouthAmericaSaoPauloActive",    @"sa-east-1",
+                @"regionUSGovCloudActive",              @"us-gov-west-1",
+                nil];
+    });
+    return keys;
+}
+
+static NSString *PreferencesRegionActiveKey(NSString *awsRegion)
+{
+    NSString *legacyKey = [PreferencesLegacyRegionActiveKeys() objectForKey:awsRegion];
+    return legacyKey ? legacyKey : [@"regionActive-" stringByAppendingString:awsRegion];
+}
+
 static NSString *const kPreferencesSshPrivateKeyFileKey                     = @"sshPrivateKeyFile";
 static NSString *const kPreferencesSshUserNameKey                           = @"sshUserName";
 static NSString *const kPreferencesSshPortKey                               = @"sshPort";
@@ -47,24 +67,23 @@ static NSString *const kPreferencesFirstLaunchKey                           = @"
     static NSDictionary *s_defaults;
     
 	if (!s_defaults) {
-		s_defaults = [[NSDictionary alloc]
-					 initWithObjectsAndKeys:
-                      [NSNumber numberWithInt:kPreferencesAWSUSEastRegion], kPreferencesAWSRegionKey,
+		NSMutableDictionary *defaults = [NSMutableDictionary dictionaryWithObjectsAndKeys:
+                      [NSNumber numberWithInteger:AWSRegionPreferenceIndex(kAWSUSEastRegion)], kPreferencesAWSRegionKey,
                       [NSNumber numberWithFloat:180], kPreferencesRefreshIntervalKey,
                       [NSNumber numberWithBool:YES], kPreferencesRefreshOnMenuOpenKey,
                       [NSNumber numberWithBool:NO], kPreferencesSortInstancesByTitleKey,
                       [NSNumber numberWithBool:NO], kPreferencesHideTerminatedInstancesKey,
                       [NSNumber numberWithBool:NO], kPreferencesUsingPublicDNSKey,
                       [NSNumber numberWithBool:YES], kPreferencesFirstLaunchKey,
-                      [NSNumber numberWithBool:YES], kPreferencesRegionUSEastActiveKey,
-                      [NSNumber numberWithBool:YES], kPreferencesRegionUSWestNorthCaliforniaActiveKey,
-                      [NSNumber numberWithBool:YES], kPreferencesRegionUSWestOregonActiveKey,
-                      [NSNumber numberWithBool:YES], kPreferencesRegionEUActiveKey,
-                      [NSNumber numberWithBool:YES], kPreferencesRegionAsiaPacificSingaporeActiveKey,
-                      [NSNumber numberWithBool:YES], kPreferencesRegionAsiaPacificJapanActiveKey,
-                      [NSNumber numberWithBool:YES], kPreferencesRegionSouthAmericaSaoPauloActiveKey,
-                      [NSNumber numberWithBool:YES], kPreferencesRegionUSGovCloudActiveKey,
                       nil];
+
+        // the original eight regions default to active (as in Elastics 1.x), newer ones to inactive
+        for (NSString *awsRegion in AWSRegions()) {
+            BOOL isLegacyRegion = [PreferencesLegacyRegionActiveKeys() objectForKey:awsRegion] != nil;
+            [defaults setObject:[NSNumber numberWithBool:isLegacyRegion] forKey:PreferencesRegionActiveKey(awsRegion)];
+        }
+
+        s_defaults = [defaults copy];
 	}
 	return s_defaults;
 }
@@ -86,7 +105,7 @@ static NSString *const kPreferencesFirstLaunchKey                           = @"
     
     // if currently selected default region was turned off, choose first active region as default
     if (![activeRegions containsObject:[NSNumber numberWithInteger:region]]) {
-        region = [[activeRegions objectAtIndex:0] integerValue];
+        region = [activeRegions count] > 0 ? [[activeRegions objectAtIndex:0] integerValue] : AWSRegionPreferenceIndex(kAWSUSEastRegion);
         self.region = region;
     }
     
@@ -98,33 +117,9 @@ static NSString *const kPreferencesFirstLaunchKey                           = @"
 	[self setInteger:region forKey:kPreferencesAWSRegionKey];
 }
 
-- (NSString *)_awsRegionFromRegion:(NSInteger)region
-{
-	switch (region) {
-		case kPreferencesAWSUSEastRegion:
-			return kAWSUSEastRegion;
-		case kPreferencesAWSUSWestNorthCaliforniaRegion:
-			return kAWSUSWestNorthCaliforniaRegion;
-		case kPreferencesAWSUSWestOregonRegion:
-			return kAWSUSWestOregonRegion;
-		case kPreferencesAWSEURegion:
-			return kAWSEURegion;
-		case kPreferencesAWSAsiaPacificSingaporeRegion:
-			return kAWSAsiaPacificSingaporeRegion;
-		case kPreferencesAWSAsiaPacificJapanRegion:
-			return kAWSAsiaPacificJapanRegion;
-		case kPreferencesAWSSouthAmericaSaoPauloRegion:
-			return kAWSSouthAmericaSaoPauloRegion;
-		case kPreferencesAWSUSGovCloudRegion:
-			return kAWSUSGovCloudRegion;
-		default:
-			return nil;
-	}
-}
-
 - (NSString *)awsRegion
 {
-	return [self _awsRegionFromRegion:self.region];
+	return AWSRegionForPreferenceIndex(self.region);
 }
 
 //- (void)setAwsRegion:(NSString *)value
@@ -183,131 +178,37 @@ static NSString *const kPreferencesFirstLaunchKey                           = @"
 	[self setBool:value forKey:kPreferencesHideTerminatedInstancesKey];
 }
 
-- (NSArray *)activeRegions
+- (BOOL)isAWSRegionActive:(NSString *)awsRegion
 {
-    NSMutableArray *result = [NSMutableArray array];
-    
-    if (self.isRegionUSEastActive)
-        [result addObject:[NSNumber numberWithInteger:kPreferencesAWSUSEastRegion]];
-    if (self.isRegionUSWestNorthCaliforniaActive)
-        [result addObject:[NSNumber numberWithInteger:kPreferencesAWSUSWestNorthCaliforniaRegion]];
-    if (self.isRegionUSWestOregonActive)
-        [result addObject:[NSNumber numberWithInteger:kPreferencesAWSUSWestOregonRegion]];
-    if (self.isRegionEUActive)
-        [result addObject:[NSNumber numberWithInteger:kPreferencesAWSEURegion]];
-    if (self.isRegionAsiaPacificSingaporeActive)
-        [result addObject:[NSNumber numberWithInteger:kPreferencesAWSAsiaPacificSingaporeRegion]];
-    if (self.isRegionAsiaPacificJapanActive)
-        [result addObject:[NSNumber numberWithInteger:kPreferencesAWSAsiaPacificJapanRegion]];
-    if (self.isRegionSouthAmericaSaoPauloActive)
-        [result addObject:[NSNumber numberWithInteger:kPreferencesAWSSouthAmericaSaoPauloRegion]];
-    if (self.isRegionUSGovCloudActive)
-        [result addObject:[NSNumber numberWithInteger:kPreferencesAWSUSGovCloudRegion]];
-    
-    return result;
+    return [self boolForKey:PreferencesRegionActiveKey(awsRegion)];
 }
 
-- (void)setActiveRegions:(NSArray *)value
+- (void)setAWSRegion:(NSString *)awsRegion active:(BOOL)active
 {
-    self.regionUSEastActive = [value containsObject:[NSNumber numberWithInteger:kPreferencesAWSUSEastRegion]];
-    self.regionUSWestNorthCaliforniaActive = [value containsObject:[NSNumber numberWithInteger:kPreferencesAWSUSWestNorthCaliforniaRegion]];
-    self.regionUSWestOregonActive = [value containsObject:[NSNumber numberWithInteger:kPreferencesAWSUSWestOregonRegion]];
-    self.regionEUActive = [value containsObject:[NSNumber numberWithInteger:kPreferencesAWSEURegion]];
-    self.regionAsiaPacificSingaporeActive = [value containsObject:[NSNumber numberWithInteger:kPreferencesAWSAsiaPacificSingaporeRegion]];
-    self.regionAsiaPacificJapanActive = [value containsObject:[NSNumber numberWithInteger:kPreferencesAWSAsiaPacificJapanRegion]];
-    self.regionSouthAmericaSaoPauloActive = [value containsObject:[NSNumber numberWithInteger:kPreferencesAWSSouthAmericaSaoPauloRegion]];
-    self.regionUSGovCloudActive = [value containsObject:[NSNumber numberWithInteger:kPreferencesAWSUSGovCloudRegion]];
+    [self setBool:active forKey:PreferencesRegionActiveKey(awsRegion)];
 }
 
 - (NSArray *)activeAWSRegions
 {
     NSMutableArray *result = [NSMutableArray array];
-    
-    for (NSNumber *region in self.activeRegions) {
-        [result addObject:[self _awsRegionFromRegion:[region integerValue]]];
+
+    for (NSString *awsRegion in AWSRegions()) {
+        if ([self isAWSRegionActive:awsRegion])
+            [result addObject:awsRegion];
     }
-    
+
     return result;
 }
 
-- (BOOL)isRegionUSEastActive
+- (NSArray *)activeRegions
 {
-    return [self boolForKey:kPreferencesRegionUSEastActiveKey];
-}
+    NSMutableArray *result = [NSMutableArray array];
 
-- (void)setRegionUSEastActive:(BOOL)value
-{
-    [self setBool:value forKey:kPreferencesRegionUSEastActiveKey];
-}
+    for (NSString *awsRegion in self.activeAWSRegions) {
+        [result addObject:[NSNumber numberWithInteger:AWSRegionPreferenceIndex(awsRegion)]];
+    }
 
-- (BOOL)isRegionUSWestNorthCaliforniaActive
-{
-    return [self boolForKey:kPreferencesRegionUSWestNorthCaliforniaActiveKey];
-}
-
-- (void)setRegionUSWestNorthCaliforniaActive:(BOOL)value
-{
-    [self setBool:value forKey:kPreferencesRegionUSWestNorthCaliforniaActiveKey];
-}
-
-- (BOOL)isRegionUSWestOregonActive
-{
-    return [self boolForKey:kPreferencesRegionUSWestOregonActiveKey];
-}
-
-- (void)setRegionUSWestOregonActive:(BOOL)value
-{
-    [self setBool:value forKey:kPreferencesRegionUSWestOregonActiveKey];
-}
-
-- (BOOL)isRegionEUActive
-{
-    return [self boolForKey:kPreferencesRegionEUActiveKey];
-}
-
-- (void)setRegionEUActive:(BOOL)value
-{
-    [self setBool:value forKey:kPreferencesRegionEUActiveKey];
-}
-
-- (BOOL)isRegionAsiaPacificSingaporeActive
-{
-    return [self boolForKey:kPreferencesRegionAsiaPacificSingaporeActiveKey];
-}
-
-- (void)setRegionAsiaPacificSingaporeActive:(BOOL)value
-{
-    [self setBool:value forKey:kPreferencesRegionAsiaPacificSingaporeActiveKey];
-}
-
-- (BOOL)isRegionAsiaPacificJapanActive
-{
-    return [self boolForKey:kPreferencesRegionAsiaPacificJapanActiveKey];
-}
-
-- (void)setRegionAsiaPacificJapanActive:(BOOL)value
-{
-    [self setBool:value forKey:kPreferencesRegionAsiaPacificJapanActiveKey];
-}
-
-- (BOOL)isRegionSouthAmericaSaoPauloActive
-{
-    return [self boolForKey:kPreferencesRegionSouthAmericaSaoPauloActiveKey];
-}
-
-- (void)setRegionSouthAmericaSaoPauloActive:(BOOL)value
-{
-    [self setBool:value forKey:kPreferencesRegionSouthAmericaSaoPauloActiveKey];
-}
-
-- (BOOL)isRegionUSGovCloudActive
-{
-    return [self boolForKey:kPreferencesRegionUSGovCloudActiveKey];
-}
-
-- (void)setRegionUSGovCloudActive:(BOOL)value
-{
-    [self setBool:value forKey:kPreferencesRegionUSGovCloudActiveKey];
+    return result;
 }
 
 - (NSString *)sshPrivateKeyFile
