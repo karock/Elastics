@@ -27,6 +27,19 @@ static NSString *const kElasticsPreferencesSuite			= @"com.tundrabot.Elastics-Pr
 // Instance menu items carry this tag (and the instance ID as represented object)
 static const NSInteger kInstanceMenuItemTag = -100;
 
+// Quote a value as one POSIX shell word: 'it'\''s' -> it's
+static NSString *ElasticsShellQuote(NSString *value)
+{
+	return [NSString stringWithFormat:@"'%@'", [value stringByReplacingOccurrencesOfString:@"'" withString:@"'\\''"]];
+}
+
+// Escape a value for use inside an AppleScript "..." string literal
+static NSString *ElasticsAppleScriptEscape(NSString *value)
+{
+	NSString *escaped = [value stringByReplacingOccurrencesOfString:@"\\" withString:@"\\\\"];
+	return [escaped stringByReplacingOccurrencesOfString:@"\"" withString:@"\\\""];
+}
+
 @interface ElasticsAppDelegate () <NSSearchFieldDelegate>
 
 - (void)setUpSearchItem;
@@ -1380,16 +1393,21 @@ static NSImage *_brImage;
 		if (sshPort > 0)
 			cmd = [cmd stringByAppendingFormat:@" -p %zd", sshPort];
         
+		// every value is quoted as a single shell word, except SSH options, which are
+		// deliberately passed through as written (e.g. "-A -o ServerAliveInterval=30")
 		if ([sshPrivateKeyFile length] > 0)
-			cmd = [cmd stringByAppendingFormat:@" -i \'%@\'", sshPrivateKeyFile];
+			cmd = [cmd stringByAppendingFormat:@" -i %@", ElasticsShellQuote(sshPrivateKeyFile)];
 		
 		if ([sshOptions length] > 0)
 			cmd = [cmd stringByAppendingFormat:@" %@", sshOptions];
 
 		if ([sshUserName length] > 0)
-			cmd = [cmd stringByAppendingFormat:@" %@@%@", sshUserName, instanceAddress];
+			cmd = [cmd stringByAppendingFormat:@" %@", ElasticsShellQuote([NSString stringWithFormat:@"%@@%@", sshUserName, instanceAddress])];
 		else
-			cmd = [cmd stringByAppendingFormat:@" %@", instanceAddress];
+			cmd = [cmd stringByAppendingFormat:@" %@", ElasticsShellQuote(instanceAddress)];
+
+		// the command goes inside AppleScript string literals below
+		NSString *scriptCmd = ElasticsAppleScriptEscape(cmd);
 
 		switch (terminalApplication) {
 			// use iTerm terminal
@@ -1415,7 +1433,7 @@ static NSImage *_brImage;
                            @"        end tell\n"
                            @"    end tell\n"
                            @"end tell",
-                           cmd];
+                           scriptCmd];
 
                     // for older version
                     old = [NSString stringWithFormat:
@@ -1437,7 +1455,7 @@ static NSImage *_brImage;
                            @"			end tell\n"
                            @"		end tell\n"
                            @"	end try",
-                           cmd, cmd];
+                           scriptCmd, scriptCmd];
                 }
 				else {
 					// new iTerm window
@@ -1451,7 +1469,7 @@ static NSImage *_brImage;
                            @"        write text \"%@\"\n"
                            @"    end tell\n"
                            @"end tell",
-                           cmd];
+                           scriptCmd];
 
                     // for older versions
                     old = [NSString stringWithFormat:
@@ -1463,11 +1481,12 @@ static NSImage *_brImage;
                            @"			write text \"%@\"\n"
                            @"		end tell\n"
                            @"	end tell",
-                           cmd];
+                           scriptCmd];
                 }
 
-                new = [new stringByReplacingOccurrencesOfString:@"\"" withString:@"\\\""];
-                old = [old stringByReplacingOccurrencesOfString:@"\"" withString:@"\\\""];
+                // these scripts are themselves embedded in string literals below
+                new = ElasticsAppleScriptEscape(new);
+                old = ElasticsAppleScriptEscape(old);
 
                 cmd = [NSString stringWithFormat:
                        @"on theSplit(theString, theDelimiter)\n"
@@ -1546,7 +1565,7 @@ static NSImage *_brImage;
 						   @"	end try\n"
 						   @"	end repeat\n"
 						   @"end tell",
-						   cmd];
+						   scriptCmd];
 				}
 				else {
 					// new Terminal window
@@ -1555,7 +1574,7 @@ static NSImage *_brImage;
 						   @"tell application \"Terminal\"\n"
 						   @"	do script \"%@\"\n"
 						   @"end tell",
-						   cmd];
+						   scriptCmd];
 				}
 				break;
 		}
@@ -1592,7 +1611,7 @@ static NSImage *_brImage;
 			   @"	do shell script \"sleep 1\"\n"
 			   @"	keystroke return\n"
 			   @"end tell\n",
-			   instanceAddress];
+			   ElasticsAppleScriptEscape(instanceAddress)];
 
 		TBTrace(@"%@", cmd);
 		
