@@ -7,8 +7,7 @@
 //
 
 #import "AWSRequest.h"
-#import "NSString+HMAC-SHA1.h"
-#import "NSString+URLEncoding.h"
+#import "AWSSignatureV4.h"
 
 // Defaults
 #define                AWSApiDefaultRegion		kAWSUSEastRegion
@@ -41,8 +40,6 @@ static NSMutableDictionary *_s_awsRequestDefaultOptions;
 @property (nonatomic, retain) NSDate *startedAt;
 @property (nonatomic, retain) NSDate *finishedAt;
 
-- (NSString *)queryFromParameters:(NSDictionary *)parameters;
-- (NSString *)signatureForParameters:(NSDictionary *)parameters method:(NSString *)method;
 - (NSDictionary *)parametersForAction:(NSString *)action method:(NSString *)method parameters:(NSDictionary *)parameters;
 - (void)requestThread:(id)object;
 - (AWSResponse *)parseResponse;
@@ -336,57 +333,15 @@ static NSMutableDictionary *_s_awsRequestDefaultOptions;
 }
 
 //
-// Generate query string from parameters dictionary, URL-escape names and values as needed
-//
-- (NSString *)queryFromParameters:(NSDictionary *)parameters
-{
-	NSArray *queryKeys = [[parameters allKeys] sortedArrayUsingSelector:@selector(compare:)];
-	NSMutableArray *queryArray = [NSMutableArray array];
-
-	for (NSString *key in queryKeys) {
-		[queryArray addObject:
-		 [NSString stringWithFormat:@"%@=%@",
-		  [key stringByURLEncoding], [[parameters valueForKey:key] stringByURLEncoding]]];
-	}
-
-	return [queryArray componentsJoinedByString:@"&"];
-}
-
-//
-// Generate AWS canonicalized query and calculate its signature
-//
-- (NSString *)signatureForParameters:(NSDictionary *)parameters method:(NSString *)method
-{
-	NSArray *signatureObjects = [NSArray arrayWithObjects:
-								 method,
-								 self.host,
-								 self.path,
-								 [self queryFromParameters:parameters],
-								 nil];
-	NSString *signatureString = [signatureObjects componentsJoinedByString:@"\n"];
-	NSString *signature = [signatureString stringBySigningWithSecret:self.secretAccessKey];
-
-	return signature;
-}
-
-//
-// Append common parameters to action-sepcific parameters, calculate and append signature parameter
+// Append common parameters to action-specific parameters.
+// Authentication is carried in headers (Signature Version 4), not in the query.
 //
 - (NSDictionary *)parametersForAction:(NSString *)action method:(NSString *)method parameters:(NSDictionary *)parameters
 {
 	NSMutableDictionary *requestParameters = [NSMutableDictionary dictionaryWithDictionary:parameters];
 
-	// add common parameters
 	[requestParameters setObject:action forKey:@"Action"];
-	[requestParameters setObject:self.accessKeyId forKey:@"AWSAccessKeyId"];
-	[requestParameters setObject:@"HmacSHA1" forKey:@"SignatureMethod"];
-	[requestParameters setObject:@"2" forKey:@"SignatureVersion"];
 	[requestParameters setObject:self.apiVersion forKey:@"Version"];
-	[requestParameters setObject:[_startedAt iso8601String] forKey:@"Timestamp"];
-
-	// sign query and add signature parameter
-	NSString *signature = [self signatureForParameters:requestParameters method:method];
-	[requestParameters setObject:signature forKey:@"Signature"];
 
 	return requestParameters;
 }
@@ -425,18 +380,38 @@ static NSMutableDictionary *_s_awsRequestDefaultOptions;
 	// prepare parameters
 	NSDictionary *requestParameters = [self parametersForAction:action method:AWSApiDefaultMethod parameters:parameters];
 
-	// prepare request URL
+	// prepare request URL; the query string must be byte-for-byte the one that gets signed
+	NSString *canonicalQuery = AWSSigV4CanonicalQueryString(requestParameters);
 	NSURL *url = [NSURL URLWithString:
 				  [NSString stringWithFormat:@"%@://%@%@?%@",
 				   self.useSSL ? @"https" : @"http",
 				   self.host,
 				   self.path,
-				   [self queryFromParameters:requestParameters]]];
+				   canonicalQuery]];
 
-	// prepare request
+	// sign with AWS Signature Version 4
+	NSString *amzDate = AWSSigV4AmzDate(_startedAt);
+	NSMutableDictionary *signedHeaders = [NSMutableDictionary dictionaryWithObjectsAndKeys:
+										  self.host, @"host",
+										  amzDate, @"x-amz-date",
+										  nil];
+	NSString *authorization = AWSSigV4AuthorizationHeader(AWSApiDefaultMethod,
+														  self.path,
+														  canonicalQuery,
+														  signedHeaders,
+														  nil,
+														  amzDate,
+														  self.region,
+														  self.service,
+														  self.accessKeyId,
+														  self.secretAccessKey);
+
+	// prepare request (Host is set by the URL loading system from the URL)
 	NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
 	[request setHTTPMethod:AWSApiDefaultMethod];
 	[request setCachePolicy:NSURLRequestReloadIgnoringCacheData];
+	[request setValue:amzDate forHTTPHeaderField:@"X-Amz-Date"];
+	[request setValue:authorization forHTTPHeaderField:@"Authorization"];
 
 	// start connection thread
 	[NSThread detachNewThreadSelector:@selector(requestThread:) toTarget:self withObject:request];
