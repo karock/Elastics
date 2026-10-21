@@ -45,6 +45,7 @@ static NSString *const kElasticsPreferencesSuite			= @"com.tundrabot.Elastics-Pr
 
 - (NSMenu *)submenuForInstance:(EC2Instance *)instance;
 - (void)refreshSubmenu:(NSMenu *)menu forInstance:(EC2Instance *)instance;
+- (NSArray *)storageItemsForInstance:(EC2Instance *)instance;
 
 - (BOOL)refresh;
 - (BOOL)refreshIgnoringAge;
@@ -804,6 +805,14 @@ static NSImage *_brImage;
 			[menu addItem:[self infoItemWithLabel:@"Private IP" info:instance.privateIpAddress action:@selector(copyToPasteboardAction:) tooltip:@"Copy Private IP"]];
 	}
 
+	NSArray *storageItems = [self storageItemsForInstance:instance];
+	if ([storageItems count]) {
+		[menu addItem:[NSMenuItem separatorItem]];
+		[menu addItem:[self titleItemWithTitle:@"STORAGE"]];
+		for (NSMenuItem *item in storageItems)
+			[menu addItem:item];
+	}
+
 	if (instance.instanceState.code != EC2_INSTANCE_STATE_PENDING) {
 		[menu addItem:[NSMenuItem separatorItem]];
 		[menu addItem:[self titleItemWithTitle:@"CPU UTILIZATION"]];
@@ -834,6 +843,74 @@ static NSImage *_brImage;
 //	[menu addItem:[NSMenuItem separatorItem]];
 //	[menu addItem:[self actionItemWithLabel:@"Restart..." action:@selector(connectToInstanceAction:)]];
 //	[menu addItem:[self actionItemWithLabel:@"Terminate..." action:@selector(connectToInstanceAction:)]];
+}
+
+// Storage rows: the root device type, then one row per attached EBS volume (root
+// first), labelled by device name. Size and type come from DescribeVolumes when it
+// is permitted; otherwise the volume ID is shown. Clicking a volume copies its ID.
+- (NSArray *)storageItemsForInstance:(EC2Instance *)instance
+{
+	NSMutableArray *items = [NSMutableArray array];
+	NSDictionary *volumes = [[DataSource sharedDataSource] volumesForInstance:instance.instanceId];
+
+	if ([instance.rootDeviceType length]) {
+		NSString *rootType = [instance.rootDeviceType isEqualToString:@"ebs"] ? @"EBS"
+						   : [instance.rootDeviceType isEqualToString:@"instance-store"] ? @"Instance Store"
+						   : instance.rootDeviceType;
+		NSString *rootInfo = [instance.rootDeviceName length]
+						   ? [NSString stringWithFormat:@"%@ \u00B7 %@", rootType, instance.rootDeviceName]
+						   : rootType;
+		[items addObject:[self infoItemWithLabel:@"Root Device" info:rootInfo action:NULL tooltip:nil]];
+	}
+
+	NSString *rootDeviceName = instance.rootDeviceName;
+	NSArray *devices = [instance.blockDeviceMapping sortedArrayUsingComparator:^NSComparisonResult(id a, id b) {
+		BOOL aIsRoot = [[a deviceName] isEqualToString:rootDeviceName];
+		BOOL bIsRoot = [[b deviceName] isEqualToString:rootDeviceName];
+		if (aIsRoot != bIsRoot)
+			return aIsRoot ? NSOrderedAscending : NSOrderedDescending;
+		return [[a deviceName] localizedStandardCompare:[b deviceName]];
+	}];
+
+	for (EC2BlockDevice *device in devices) {
+		if (![device.volumeId length])
+			continue;
+
+		EC2Volume *volume = [volumes objectForKey:device.volumeId];
+		NSMutableArray *details = [NSMutableArray array];     // shown in the row
+		NSMutableArray *extras = [NSMutableArray array];      // tooltip only
+
+		if (volume) {
+			if (volume.size > 0)
+				[details addObject:[NSString stringWithFormat:@"%ld GiB", (long)volume.size]];
+			if ([volume.volumeType length])
+				[details addObject:volume.volumeType];
+			if (volume.iops > 0)
+				[extras addObject:[NSString stringWithFormat:@"%ld IOPS", (long)volume.iops]];
+			if (volume.throughput > 0)
+				[extras addObject:[NSString stringWithFormat:@"%ld MiB/s", (long)volume.throughput]];
+			[extras addObject:volume.encrypted ? @"encrypted" : @"not encrypted"];
+		}
+		if (device.deleteOnTermination)
+			[extras addObject:@"deleted on termination"];
+
+		NSString *info = [details count] ? [details componentsJoinedByString:@" "] : device.volumeId;
+		if ([device.status length] && ![device.status isEqualToString:@"attached"])
+			info = [NSString stringWithFormat:@"%@ (%@)", info, device.status];
+
+		NSString *tooltip = [NSString stringWithFormat:@"Copy Volume ID %@", device.volumeId];
+		if ([extras count])
+			tooltip = [tooltip stringByAppendingFormat:@"\n%@", [extras componentsJoinedByString:@", "]];
+
+		NSMenuItem *item = [self infoItemWithLabel:(device.deviceName ? device.deviceName : @"Volume")
+											  info:info
+											action:@selector(copyToPasteboardAction:)
+										   tooltip:tooltip];
+		[item setRepresentedObject:device.volumeId];   // copied by copyToPasteboardAction:
+		[items addObject:item];
+	}
+
+	return items;
 }
 
 #pragma mark - DataSource operations and notifications

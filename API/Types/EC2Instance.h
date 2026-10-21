@@ -12,6 +12,7 @@
 #import "EC2Placement.h"
 #import "EC2Group.h"
 #import "EC2Monitoring.h"
+#import "EC2BlockDevice.h"
 
 @interface EC2Instance : AWSType {
 @private
@@ -30,6 +31,9 @@
 	NSString			*_instanceLifecycle;
 	NSString			*_stateReasonMessage;
 	NSString			*_stateTransitionReason;
+	NSString			*_rootDeviceType;
+	NSString			*_rootDeviceName;
+	NSArray				*_blockDeviceMapping;   // EC2BlockDevice
 	NSArray				*_instanceGroupSet;   // EC2Group, security groups of the instance itself
 }
 
@@ -45,6 +49,9 @@
 @property (nonatomic, retain, readonly) NSString *privateIpAddress;
 @property (nonatomic, retain, readonly) NSString *ipAddress;
 @property (nonatomic, retain, readonly) NSArray *tagSet;
+@property (nonatomic, retain, readonly) NSString *rootDeviceType;           // ebs or instance-store
+@property (nonatomic, retain, readonly) NSString *rootDeviceName;           // e.g. /dev/xvda
+@property (nonatomic, retain, readonly) NSArray *blockDeviceMapping;        // EC2BlockDevice
 @property (nonatomic, retain, readonly) NSString *instanceLifecycle;      // spot, scheduled, capacity-block, ...; nil for On-Demand
 @property (nonatomic, retain, readonly) NSString *stateReasonMessage;     // stateReason/message, e.g. "Client.UserInitiatedShutdown: User initiated shutdown"
 @property (nonatomic, retain, readonly) NSString *stateTransitionReason;  // reason, e.g. "User initiated (2026-10-21 10:00:00 GMT)"

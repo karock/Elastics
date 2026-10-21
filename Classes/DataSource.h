@@ -8,6 +8,8 @@
 
 #import <Foundation/Foundation.h>
 #import "EC2DescribeInstancesRequest.h"
+#import "EC2DescribeVolumesRequest.h"
+#import "EC2Volume.h"
 #import "EC2Instance.h"
 #import "MonitoringGetMetricStatisticsRequest.h"
 #import "MonitoringDatapoint.h"
@@ -26,6 +28,7 @@ extern NSString *const kDataSourceAllRegionsRefreshType;
 	NSMutableDictionary				*_runningRefreshes;
 	NSMutableDictionary             *_instanceRequests;                 // region -> EC2DescribeInstancesRequest
 	NSMutableDictionary				*_instanceMonitoringRequests;       // instanceID -> MonitoringGetMetricStatisticsRequest
+	NSMutableDictionary				*_instanceVolumeRequests;           // instanceID -> EC2DescribeVolumesRequest
 	NSSet							*_instanceMonitoringMetrics;
 }
 
@@ -53,6 +56,7 @@ extern NSString *const kDataSourceAllRegionsRefreshType;
 - (NSString *)instanceCountInRegionStringRepresentation:(NSString *)awsRegion hideTerminatedInstances:(BOOL)hideTerminated;  // instance count in given region as string
 
 //- (NSArray *)statisticsForMetric:(NSString *)metric;										// composite statistics for metric (array of MonitoringDatapoint)
+- (NSDictionary *)volumesForInstance:(NSString *)instanceId;	// volume ID -> EC2Volume for the instance's attached volumes; empty until loaded or if DescribeVolumes is not permitted
 - (NSArray *)statisticsForMetric:(NSString *)metric forInstance:(NSString *)instanceId;		// instance statistics for metric (array of MonitoringDatapoint)
 
 // Max/Min/Average metric values
