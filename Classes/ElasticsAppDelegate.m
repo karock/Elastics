@@ -35,6 +35,9 @@ static const NSInteger kInstanceMenuItemTag = -100;
 - (BOOL)instance:(EC2Instance *)instance matchesSearchTerms:(NSArray *)terms;
 - (void)focusSearchField;
 - (void)installSearchKeyMonitor;
+- (BOOL)clearSearch;
+- (void)moveFromSearchFieldIntoList;
+- (BOOL)highlightStatusMenuItem:(NSMenuItem *)item;
 - (void)removeSearchKeyMonitor;
 
 - (void)resetMenu;
@@ -562,6 +565,12 @@ static BOOL ElasticsIsSearchShortcut(NSEvent *event)
 			[self focusSearchField];
 			return nil;
 		}
+		// Esc in the instance list: first clear the search (and go back to the field),
+		// only close the menu when there is nothing to clear
+		if ([event keyCode] == 53 /* kVK_Escape */ && [self clearSearch]) {
+			[self focusSearchField];
+			return nil;
+		}
 		return event;
 	}] retain];
 }
@@ -573,6 +582,81 @@ static BOOL ElasticsIsSearchShortcut(NSEvent *event)
 		[_searchKeyMonitor release];
 		_searchKeyMonitor = nil;
 	}
+}
+
+// Keys typed in the search field:
+//   Esc     clears the search; with nothing to clear, closes the menu
+//   ↓ / ↩   moves into the list, highlighting the first matching instance
+//           (→ then opens its submenu, ↑ from the top comes back to the field)
+- (BOOL)control:(NSControl *)control textView:(NSTextView *)textView doCommandBySelector:(SEL)commandSelector
+{
+	if (control != _searchField)
+		return NO;
+
+	if (commandSelector == @selector(cancelOperation:)) {
+		if (![self clearSearch])
+			[_statusMenu cancelTracking];
+		return YES;
+	}
+	if (commandSelector == @selector(moveDown:) || commandSelector == @selector(insertNewline:)) {
+		[self moveFromSearchFieldIntoList];
+		return YES;
+	}
+	if (commandSelector == @selector(moveUp:))
+		return YES;   // already at the top
+
+	return NO;
+}
+
+// Returns NO if the search was already empty.
+- (BOOL)clearSearch
+{
+	if (![[_searchField stringValue] length])
+		return NO;
+
+	[_searchField setStringValue:@""];
+	[self applySearchFilter];
+	return YES;
+}
+
+- (void)moveFromSearchFieldIntoList
+{
+	NSMenuItem *firstMatch = nil;
+	for (NSMenuItem *item in [_statusMenu itemArray]) {
+		if ([item tag] == kInstanceMenuItemTag && ![item isHidden]) {
+			firstMatch = item;
+			break;
+		}
+	}
+	if (!firstMatch)
+		return;
+
+	// hand the keyboard back to the menu, then put the highlight on the first match;
+	// if that isn't possible the menu still takes over and the next ↓ selects it
+	[[_searchField window] makeFirstResponder:nil];
+	[self highlightStatusMenuItem:firstMatch];
+}
+
+// NSMenu has no public way to move its highlight. Use its private highlightItem:
+// if it's there (as other menu bar apps do); otherwise do nothing.
+- (BOOL)highlightStatusMenuItem:(NSMenuItem *)item
+{
+	SEL highlightSelector = NSSelectorFromString(@"highlightItem:");
+	if (![_statusMenu respondsToSelector:highlightSelector])
+		highlightSelector = NSSelectorFromString(@"_highlightItem:");
+	if (![_statusMenu respondsToSelector:highlightSelector])
+		return NO;
+
+	[_statusMenu performSelector:highlightSelector withObject:item];
+	return YES;
+}
+
+// Moving the highlight up onto the search field (↑ from the first instance, or the
+// mouse) puts the cursor back in it.
+- (void)menu:(NSMenu *)menu willHighlightItem:(NSMenuItem *)item
+{
+	if (menu == _statusMenu && item == _searchItem)
+		[self focusSearchField];
 }
 
 - (void)controlTextDidChange:(NSNotification *)notification
