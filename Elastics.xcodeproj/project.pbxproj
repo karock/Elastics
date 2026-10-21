@@ -29,7 +29,7 @@
 		C32C298D12C0C63900F2C136 /* TBXML.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C298B12C0C63900F2C136 /* TBXML.m */; };
 		C32C299E12C0C7FF00F2C136 /* AWSType.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C299D12C0C7FF00F2C136 /* AWSType.m */; };
 		C32C29BE12C0C93500F2C136 /* EC2Reservation.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C29BD12C0C93500F2C136 /* EC2Reservation.m */; };
-		C32C29CA12C0C9BB00F2C136 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C32C29C912C0C9BB00F2C136 /* libz.dylib */; };
+		C32C29CA12C0C9BB00F2C136 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = C32C29C912C0C9BB00F2C136 /* libz.tbd */; };
 		C32C2A0212C0CF2000F2C136 /* DataSource.m in Sources */ = {isa = PBXBuildFile; fileRef = C32C2A0112C0CF2000F2C136 /* DataSource.m */; };
 		C32C2B5312C0E2B600F2C136 /* InstanceStateOther.png in Resources */ = {isa = PBXBuildFile; fileRef = C32C2B4E12C0E2B600F2C136 /* InstanceStateOther.png */; };
 		C32C2B5412C0E2B600F2C136 /* InstanceStateRunning.png in Resources */ = {isa = PBXBuildFile; fileRef = C32C2B4F12C0E2B600F2C136 /* InstanceStateRunning.png */; };
@@ -60,7 +60,7 @@
 		C33F79D215FF7EAC0085CCE2 /* InstanceStateStopped@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = C33F79CC15FF7EAB0085CCE2 /* InstanceStateStopped@2x.png */; };
 		C33F79D315FF7EAC0085CCE2 /* InstanceStateTerminated@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = C33F79CD15FF7EAC0085CCE2 /* InstanceStateTerminated@2x.png */; };
 		C3603E5A12DC7AA100B13219 /* Progress.png in Resources */ = {isa = PBXBuildFile; fileRef = C3603E5912DC7AA100B13219 /* Progress.png */; };
-		C379FA7612D7F90300D055EF /* Elastics Preferences.app in CopyFiles */ = {isa = PBXBuildFile; fileRef = C3BFED5B12D76B1A007A4EDF /* Elastics Preferences.app */; };
+		C379FA7612D7F90300D055EF /* Elastics Preferences.app in CopyFiles */ = {isa = PBXBuildFile; fileRef = C3BFED5B12D76B1A007A4EDF /* Elastics Preferences.app */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		C379FD6612D89BB800D055EF /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C379FD6512D89BB800D055EF /* Security.framework */; };
 		C38ACE2714D29F7900A7C1E0 /* EC2Group.m in Sources */ = {isa = PBXBuildFile; fileRef = C38ACE2614D29F7900A7C1E0 /* EC2Group.m */; };
 		C391BB0C12CB9F3E00BD929A /* AWSErrorResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = C391BB0B12CB9F3E00BD929A /* AWSErrorResponse.m */; };
@@ -122,14 +122,14 @@
 
 /* Begin PBXFileReference section */
 		089C165DFE840E0CC02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
-		1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
+		1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		1DDD58150DA1D0A300B32029 /* English */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = English; path = English.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		256AC3D80F4B6AC300CF3369 /* ElasticsAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ElasticsAppDelegate.h; sourceTree = "<group>"; };
 		256AC3D90F4B6AC300CF3369 /* ElasticsAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ElasticsAppDelegate.m; sourceTree = "<group>"; };
 		256AC3F00F4B6AF500CF3369 /* Elastics_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Elastics_Prefix.pch; sourceTree = "<group>"; };
 		29B97316FDCFA39411CA2CEA /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
-		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
+		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		8D1107310486CEB800E47090 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../Info.plist; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* Elastics.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Elastics.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C311E2DE14B1B177000CB004 /* EC2Placement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EC2Placement.h; sourceTree = "<group>"; };
@@ -167,7 +167,7 @@
 		C32C299D12C0C7FF00F2C136 /* AWSType.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AWSType.m; sourceTree = "<group>"; };
 		C32C29BC12C0C93500F2C136 /* EC2Reservation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EC2Reservation.h; sourceTree = "<group>"; };
 		C32C29BD12C0C93500F2C136 /* EC2Reservation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = EC2Reservation.m; sourceTree = "<group>"; };
-		C32C29C912C0C9BB00F2C136 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
+		C32C29C912C0C9BB00F2C136 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 		C32C2A0012C0CF2000F2C136 /* DataSource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DataSource.h; sourceTree = "<group>"; };
 		C32C2A0112C0CF2000F2C136 /* DataSource.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DataSource.m; sourceTree = "<group>"; };
 		C32C2B4E12C0E2B600F2C136 /* InstanceStateOther.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = InstanceStateOther.png; sourceTree = "<group>"; };
@@ -260,7 +260,7 @@
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
 				C379FD6612D89BB800D055EF /* Security.framework in Frameworks */,
 				C32C30FA12C20F2F00F2C136 /* QuartzCore.framework in Frameworks */,
-				C32C29CA12C0C9BB00F2C136 /* libz.dylib in Frameworks */,
+				C32C29CA12C0C9BB00F2C136 /* libz.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -298,7 +298,7 @@
 				1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */,
 				C32C30F912C20F2F00F2C136 /* QuartzCore.framework */,
 				C379FD6512D89BB800D055EF /* Security.framework */,
-				C32C29C912C0C9BB00F2C136 /* libz.dylib */,
+				C32C29C912C0C9BB00F2C136 /* libz.tbd */,
 			);
 			name = "Linked Frameworks";
 			sourceTree = "<group>";
@@ -536,7 +536,7 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0420;
+				LastUpgradeCheck = 1600;
 				ORGANIZATIONNAME = "Tundra Bot";
 			};
 			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "Elastics" */;
@@ -707,6 +707,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = Elastics_Prefix.pch;
 				INFOPLIST_FILE = Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tundrabot.Elastics;
 				INSTALL_PATH = "$(HOME)/Applications";
 				PRODUCT_NAME = Elastics;
 			};
@@ -718,6 +719,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = Elastics_Prefix.pch;
 				INFOPLIST_FILE = Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tundrabot.Elastics;
 				INSTALL_PATH = "$(HOME)/Applications";
 				PRODUCT_NAME = Elastics;
 			};
@@ -727,8 +729,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = C32C28C912C0C09200F2C136 /* Elastics.xcconfig */;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
-				CODE_SIGN_IDENTITY = "3rd Party Mac Developer Application";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
@@ -738,11 +740,9 @@
 					DEBUG,
 					TB_DEBUG,
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				ONLY_ACTIVE_ARCH = YES;
-				PROVISIONING_PROFILE = "";
 				SDKROOT = macosx;
-				VALID_ARCHS = "i386 x86_64";
 			};
 			name = Debug;
 		};
@@ -750,17 +750,15 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = C32C28C912C0C09200F2C136 /* Elastics.xcconfig */;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
-				CODE_SIGN_IDENTITY = "3rd Party Mac Developer Application";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_PREPROCESSOR_DEFINITIONS = NS_BLOCK_ASSERTIONS;
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
-				PROVISIONING_PROFILE = "";
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				SDKROOT = macosx;
-				VALID_ARCHS = "i386 x86_64";
 			};
 			name = Release;
 		};
@@ -768,8 +766,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = C32C28C912C0C09200F2C136 /* Elastics.xcconfig */;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
-				CODE_SIGN_IDENTITY = "3rd Party Mac Developer Application";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
@@ -780,11 +778,9 @@
 					TB_DEBUG,
 					TB_USE_EXPIRATION_DATE,
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				ONLY_ACTIVE_ARCH = YES;
-				PROVISIONING_PROFILE = "";
 				SDKROOT = macosx;
-				VALID_ARCHS = "i386 x86_64";
 			};
 			name = Beta;
 		};
@@ -796,6 +792,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = Elastics_Prefix.pch;
 				INFOPLIST_FILE = Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tundrabot.Elastics;
 				INSTALL_PATH = "$(HOME)/Applications";
 				PRODUCT_NAME = Elastics;
 			};
@@ -805,17 +802,15 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = C32C28C912C0C09200F2C136 /* Elastics.xcconfig */;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
-				CODE_SIGN_IDENTITY = "3rd Party Mac Developer Application";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_PREPROCESSOR_DEFINITIONS = NS_BLOCK_ASSERTIONS;
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
-				PROVISIONING_PROFILE = "";
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				SDKROOT = macosx;
-				VALID_ARCHS = "i386 x86_64";
 			};
 			name = Distribution;
 		};
@@ -825,6 +820,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = Elastics_Prefix.pch;
 				INFOPLIST_FILE = Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tundrabot.Elastics;
 				INSTALL_PATH = "$(HOME)/Applications";
 				PRODUCT_NAME = Elastics;
 			};
