@@ -16,6 +16,7 @@
 
 extern NSString *const kAWSAccessKeyIdOption;
 extern NSString *const kAWSSecretAccessKeyOption;
+extern NSString *const kAWSSessionTokenOption;      // optional, for temporary (STS) credentials
 extern NSString *const kAWSRegionOption;
 extern NSString *const kAWSServiceOption;
 extern NSString *const kAWSPathOption;
@@ -45,6 +46,7 @@ extern NSString *const kAWSUseSSLOption;
 @property (nonatomic, assign) id<AWSRequestDelegate> delegate;
 @property (nonatomic, copy) NSString *accessKeyId;
 @property (nonatomic, copy) NSString *secretAccessKey;
+@property (nonatomic, copy) NSString *sessionToken;
 @property (nonatomic, copy) NSString *region;
 @property (nonatomic, copy) NSString *service;
 @property (nonatomic, copy) NSString *path;

@@ -19,6 +19,7 @@ static NSString *const AWSApiMonitoringVersion	= @"2010-08-01";
 // Request options keys
 NSString *const kAWSAccessKeyIdOption			= @"AWSAccessKeyId";
 NSString *const kAWSSecretAccessKeyOption		= @"AWSSecretAccessKey";
+NSString *const kAWSSessionTokenOption			= @"AWSSessionToken";
 NSString *const kAWSRegionOption				= @"AWSRegion";
 NSString *const kAWSServiceOption				= @"AWSService";
 NSString *const kAWSPathOption					= @"AWSPath";
@@ -129,6 +130,17 @@ static NSMutableDictionary *_s_awsRequestDefaultOptions;
 - (void)setSecretAccessKey:(NSString *)value
 {
 	[_options setObject:[[value copy] autorelease] forKey:kAWSSecretAccessKeyOption];
+}
+
+- (NSString *)sessionToken
+{
+	NSString *result = [_options objectForKey:kAWSSessionTokenOption] ? [_options objectForKey:kAWSSessionTokenOption] : [_s_awsRequestDefaultOptions objectForKey:kAWSSessionTokenOption];
+	return result ? result : @"";
+}
+
+- (void)setSessionToken:(NSString *)value
+{
+	[_options setObject:[[value copy] autorelease] forKey:kAWSSessionTokenOption];
 }
 
 - (NSString *)region
@@ -354,6 +366,9 @@ static NSMutableDictionary *_s_awsRequestDefaultOptions;
 										  self.host, @"host",
 										  amzDate, @"x-amz-date",
 										  nil];
+	NSString *sessionToken = self.sessionToken;
+	if ([sessionToken length] > 0)
+		[signedHeaders setObject:sessionToken forKey:@"x-amz-security-token"];
 	NSString *authorization = AWSSigV4AuthorizationHeader(AWSApiDefaultMethod,
 														  self.path,
 														  canonicalQuery,
@@ -371,6 +386,8 @@ static NSMutableDictionary *_s_awsRequestDefaultOptions;
 	[request setCachePolicy:NSURLRequestReloadIgnoringCacheData];
 	[request setValue:amzDate forHTTPHeaderField:@"X-Amz-Date"];
 	[request setValue:authorization forHTTPHeaderField:@"Authorization"];
+	if ([sessionToken length] > 0)
+		[request setValue:sessionToken forHTTPHeaderField:@"X-Amz-Security-Token"];
 
 	// start connection thread
 	[NSThread detachNewThreadSelector:@selector(requestThread:) toTarget:self withObject:request];
