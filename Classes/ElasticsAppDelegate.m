@@ -70,6 +70,7 @@ static NSString *const kElasticsPreferencesSuite			= @"com.tundrabot.Elastics-Pr
 - (void)quitAction:(id)sender;
 - (void)editPreferencesAction:(id)sender;
 - (void)copyToPasteboardAction:(id)sender;
+- (NSString *)connectAddressForInstance:(EC2Instance *)instance;
 - (void)connectToInstanceWithSshAction:(id)sender;
 - (void)connectToInstanceWithRdpAction:(id)sender;
 - (void)aboutAction:(id)sender;
@@ -793,11 +794,13 @@ static NSImage *_brImage;
         [menu addItem:[self infoItemWithLabel:@"Autoscaling Group" info:instance.autoscalingGroupName action:NULL tooltip:nil]];
 	[menu addItem:[self infoItemWithLabel:@"State" info:instance.instanceState.name action:NULL tooltip:nil]];
 
-	if ([instance.ipAddress length] > 0) {
+	if ([instance.ipAddress length] > 0 || [instance.privateIpAddress length] > 0) {
 		[menu addItem:[NSMenuItem separatorItem]];
 		[menu addItem:[self titleItemWithTitle:@"NETWORKING"]];
-		[menu addItem:[self infoItemWithLabel:@"Public IP" info:instance.ipAddress action:@selector(copyToPasteboardAction:) tooltip:@"Copy Public IP"]];
-		[menu addItem:[self infoItemWithLabel:@"Private IP" info:instance.privateIpAddress action:@selector(copyToPasteboardAction:) tooltip:@"Copy Private IP"]];
+		if ([instance.ipAddress length] > 0)
+			[menu addItem:[self infoItemWithLabel:@"Public IP" info:instance.ipAddress action:@selector(copyToPasteboardAction:) tooltip:@"Copy Public IP"]];
+		if ([instance.privateIpAddress length] > 0)
+			[menu addItem:[self infoItemWithLabel:@"Private IP" info:instance.privateIpAddress action:@selector(copyToPasteboardAction:) tooltip:@"Copy Private IP"]];
 	}
 
 	if (instance.instanceState.code != EC2_INSTANCE_STATE_PENDING) {
@@ -1092,6 +1095,16 @@ static NSImage *_brImage;
 	[pasteBoard setString:[menuItem representedObject] forType:NSPasteboardTypeString];
 }
 
+// Public DNS name (if preferred), else public IP, else private IP for VPC-only instances.
+- (NSString *)connectAddressForInstance:(EC2Instance *)instance
+{
+	if ([[NSUserDefaults standardUserDefaults] isUsingPublicDNS] && [instance.dnsName length] > 0)
+		return instance.dnsName;
+	if ([instance.ipAddress length] > 0)
+		return instance.ipAddress;
+	return instance.privateIpAddress;
+}
+
 - (void)connectToInstanceWithSshAction:(id)sender
 {
 	NSMenuItem *menuItem = (NSMenuItem *)sender;
@@ -1127,7 +1140,7 @@ static NSImage *_brImage;
 		else
 			sshOptions = [[NSUserDefaults standardUserDefaults] sshOptions];
 
-        NSString *instanceAddress = [[NSUserDefaults standardUserDefaults] isUsingPublicDNS] ? instance.dnsName : instance.ipAddress;
+        NSString *instanceAddress = [self connectAddressForInstance:instance];
 
 		NSString *cmd = @"ssh";
 
@@ -1335,7 +1348,7 @@ static NSImage *_brImage;
 		// TODO: switch ...
 		
 		NSString *cmd = nil;
-        NSString *instanceAddress = [[NSUserDefaults standardUserDefaults] isUsingPublicDNS] ? instance.dnsName : instance.ipAddress;
+        NSString *instanceAddress = [self connectAddressForInstance:instance];
 
 		cmd = [NSString stringWithFormat:
 			   @"tell application \"Finder\" to set the clipboard to \"%@\"\n"
