@@ -784,14 +784,16 @@ static NSImage *_brImage;
 	[menu addItem:[self infoItemWithLabel:@"Instance ID" info:instance.instanceId action:@selector(copyToPasteboardAction:) tooltip:@"Copy Instance ID"]];
 	[menu addItem:[self infoItemWithLabel:@"Image ID" info:instance.imageId action:@selector(copyToPasteboardAction:) tooltip:@"Copy Image ID"]];
 	[menu addItem:[self infoItemWithLabel:@"Instance Type" info:instance.instanceType action:NULL tooltip:nil]];
+	[menu addItem:[self infoItemWithLabel:@"Lifecycle" info:[instance lifecycleTitle] action:NULL tooltip:nil]];
 	[menu addItem:[self infoItemWithLabel:@"Monitoring" info:instance.monitoring.monitoringType action:NULL tooltip:nil]];
 	[menu addItem:[self infoItemWithLabel:@"Launched At" info:[instance.launchTime localizedString] action:NULL tooltip:nil]];
 	[menu addItem:[self infoItemWithLabel:@"Availability Zone" info:instance.placement.availabilityZone action:NULL tooltip:nil]];
-    if (instance.securityGroup)
-        [menu addItem:[self infoItemWithLabel:@"Security Group" info:instance.securityGroup action:NULL tooltip:nil]];
     if (instance.autoscalingGroupName)
         [menu addItem:[self infoItemWithLabel:@"Autoscaling Group" info:instance.autoscalingGroupName action:NULL tooltip:nil]];
 	[menu addItem:[self infoItemWithLabel:@"State" info:instance.instanceState.name action:NULL tooltip:nil]];
+	NSString *stateReason = [instance stateReasonTitle];
+	if (stateReason)
+		[menu addItem:[self infoItemWithLabel:@"State Reason" info:stateReason action:NULL tooltip:instance.stateReasonMessage]];
 
 	if ([instance.ipAddress length] > 0 || [instance.privateIpAddress length] > 0) {
 		[menu addItem:[NSMenuItem separatorItem]];
