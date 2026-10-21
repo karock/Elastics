@@ -387,35 +387,57 @@ static NSString *const kAccountSshOptionsKey                = @"sshOptions";
 
 - (NSData *)_archiveGenericAttributes
 {
-	NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:
-								[NSNumber numberWithInteger:_accountId], kAccountAttributeIDKey,
-								_name, kAccountAttributeNameKey,
-								[NSNumber numberWithInteger:_defaultRegion], kAccountAttributeDefaultRegionKey,
-								_sshPrivateKeyFile, kAccountSshPrivateKeyFileKey,
-								_sshUserName, kAccountSshUserNameKey,
-                                [NSNumber numberWithInteger:_sshPort], kAccountSshPortKey,
-                                _sshOptions, kAccountSshOptionsKey,
-								nil];
-    
-//    TBTrace(@"attributes: %@", attributes);
+	// skip nil values: with dictionaryWithObjectsAndKeys:, a nil (say, no key file)
+	// ended the list early and silently dropped every setting after it
+	NSMutableDictionary *attributes = [NSMutableDictionary dictionary];
+	[attributes setObject:[NSNumber numberWithInteger:_accountId] forKey:kAccountAttributeIDKey];
+	if (_name)				[attributes setObject:_name forKey:kAccountAttributeNameKey];
+	[attributes setObject:[NSNumber numberWithInteger:_defaultRegion] forKey:kAccountAttributeDefaultRegionKey];
+	if (_sshPrivateKeyFile)	[attributes setObject:_sshPrivateKeyFile forKey:kAccountSshPrivateKeyFileKey];
+	if (_sshUserName)		[attributes setObject:_sshUserName forKey:kAccountSshUserNameKey];
+	[attributes setObject:[NSNumber numberWithInteger:_sshPort] forKey:kAccountSshPortKey];
+	if (_sshOptions)		[attributes setObject:_sshOptions forKey:kAccountSshOptionsKey];
 
-	return [NSKeyedArchiver archivedDataWithRootObject:attributes];
+	NSError *error = nil;
+	NSData *data = [NSKeyedArchiver archivedDataWithRootObject:attributes requiringSecureCoding:YES error:&error];
+	if (!data)
+		TBLog(@"could not archive account attributes: %@", error);
+	return data;
+}
+
+static NSString *AccountStringValue(id value)
+{
+	return [value isKindOfClass:[NSString class]] ? value : nil;
+}
+
+static NSInteger AccountIntegerValue(id value)
+{
+	return [value isKindOfClass:[NSNumber class]] ? [value integerValue] : 0;
 }
 
 - (void)_unarchiveGenericAttributes:(NSData *)data
 {
 	if (data && [data length] > 0) {
-		NSDictionary *attributes = [NSKeyedUnarchiver unarchiveObjectWithData:data];
-        
-//        TBTrace(@"attributes: %@", attributes);
+		// secure decoding: only the plist-like types these attributes are made of may
+		// be instantiated, whatever the archive claims to contain
+		NSSet *allowedClasses = [NSSet setWithObjects:
+								 [NSDictionary class], [NSMutableDictionary class],
+								 [NSString class], [NSMutableString class],
+								 [NSNumber class], nil];
+		NSError *error = nil;
+		id attributes = [NSKeyedUnarchiver unarchivedObjectOfClasses:allowedClasses fromData:data error:&error];
+		if (![attributes isKindOfClass:[NSDictionary class]]) {
+			TBLog(@"could not read account attributes: %@", error);
+			return;
+		}
 
-		_accountId = [[attributes objectForKey:kAccountAttributeIDKey] integerValue];
-		_name = [[attributes objectForKey:kAccountAttributeNameKey] copy];
-		_defaultRegion = [[attributes objectForKey:kAccountAttributeDefaultRegionKey] integerValue];
-		_sshPrivateKeyFile = [[attributes objectForKey:kAccountSshPrivateKeyFileKey] copy];
-		_sshUserName = [[attributes objectForKey:kAccountSshUserNameKey] copy];
-		_sshPort = [[attributes objectForKey:kAccountSshPortKey] integerValue];
-        _sshOptions = [[attributes objectForKey:kAccountSshOptionsKey] copy];
+		_accountId = AccountIntegerValue([attributes objectForKey:kAccountAttributeIDKey]);
+		_name = [AccountStringValue([attributes objectForKey:kAccountAttributeNameKey]) copy];
+		_defaultRegion = AccountIntegerValue([attributes objectForKey:kAccountAttributeDefaultRegionKey]);
+		_sshPrivateKeyFile = [AccountStringValue([attributes objectForKey:kAccountSshPrivateKeyFileKey]) copy];
+		_sshUserName = [AccountStringValue([attributes objectForKey:kAccountSshUserNameKey]) copy];
+		_sshPort = AccountIntegerValue([attributes objectForKey:kAccountSshPortKey]);
+        _sshOptions = [AccountStringValue([attributes objectForKey:kAccountSshOptionsKey]) copy];
 	}
     else
         TBTrace(@"data dictionary is empty");
