@@ -562,7 +562,9 @@ TB_SINGLETON(DataSource);
 
 	if ([stats count] > 0) {
 		NSTimeInterval startTimestamp = [[NSDate date] timeIntervalSinceReferenceDate] - (NSTimeInterval)range;
-		__block CGFloat result = 0;
+		// start above any real value; starting at 0 (as before) meant no datapoint could
+		// ever be lower, so the minimum always came out as 0
+		__block CGFloat result = CGFLOAT_MAX;
 
 		[stats enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
 			MonitoringDatapoint *datapoint = (MonitoringDatapoint *)obj;
@@ -571,7 +573,7 @@ TB_SINGLETON(DataSource);
 			}
 		}];
 
-		return result;
+		return result != CGFLOAT_MAX ? result : 0;   // 0 if no datapoint is in range
 	}
 	else
 		return 0;
