@@ -17,6 +17,3 @@ DerivedData
 *.ipa
 *.xcuserstate
 
-# CocoaPods
-Pods/
-Podfile.lock
