@@ -49,6 +49,7 @@ TB_SINGLETON(DataSource);
 	TBRelease(_instanceRequests);
 	TBRelease(_instanceMonitoringRequests);
 	TBRelease(_instanceVolumeRequests);
+	TBRelease(_instanceTypeRequests);
 	TBRelease(_instanceMonitoringMetrics);
 
 	[super dealloc];
@@ -86,6 +87,7 @@ TB_SINGLETON(DataSource);
 	TBRelease(_instanceRequests);
 	TBRelease(_instanceMonitoringRequests);
 	TBRelease(_instanceVolumeRequests);
+	TBRelease(_instanceTypeRequests);
 	TBRelease(_instanceMonitoringMetrics);
 
     _instanceMonitoringMetrics = [[NSSet alloc] initWithObjects:kAWSCPUUtilizationMetric, nil];
@@ -93,6 +95,7 @@ TB_SINGLETON(DataSource);
     _instanceRequests = [[NSMutableDictionary alloc] init];
     _instanceMonitoringRequests = [[NSMutableDictionary alloc] init];
     _instanceVolumeRequests = [[NSMutableDictionary alloc] init];
+    _instanceTypeRequests = [[NSMutableDictionary alloc] init];
 }
 
 - (BOOL)refreshCurrentRegionIgnoringAge:(BOOL)ignoreAge
@@ -243,6 +246,22 @@ TB_SINGLETON(DataSource);
 		if (![volumeRequest isRunning] && (ignoreAge || [volumeRequest age] > kMaxStatisticsAge))
 			[requestSet addObject:volumeRequest];
 
+		// instance type details (instance store disks) never change: load once per type,
+		// retrying a failed load at most every kMaxStatisticsAge
+		NSString *instanceType = [[self instance:instanceId] instanceType];
+		if ([instanceType length]) {
+			EC2DescribeInstanceTypesRequest *typeRequest = [_instanceTypeRequests objectForKey:instanceType];
+			if (!typeRequest) {
+				typeRequest = [[EC2DescribeInstanceTypesRequest alloc] initWithOptions:nil delegate:self];
+				typeRequest.region = currentRegion;
+				typeRequest.instanceType = instanceType;
+				[_instanceTypeRequests setObject:typeRequest forKey:instanceType];
+				[typeRequest release];
+			}
+			if (![typeRequest isRunning] && ![typeRequest instanceTypeInfo] && [typeRequest age] > kMaxStatisticsAge)
+				[requestSet addObject:typeRequest];
+		}
+
 		// do we have anything scheduled?
 		if (![requestSet count])
             return NO;
@@ -353,6 +372,11 @@ TB_SINGLETON(DataSource);
 }
 
 #pragma mark - Data accessors and helpers
+
+- (EC2InstanceTypeInfo *)instanceTypeInfoForInstanceType:(NSString *)instanceType
+{
+	return instanceType ? [[_instanceTypeRequests objectForKey:instanceType] instanceTypeInfo] : nil;
+}
 
 - (NSDictionary *)volumesForInstance:(NSString *)instanceId
 {
