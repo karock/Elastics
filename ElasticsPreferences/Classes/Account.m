@@ -185,34 +185,37 @@ sshPrivateKeyFile:(NSString *)sshPrivateKeyFile
 		// create a new item
 		
 		// create ACL
-		NSArray *trustedApplications = nil;
-		
-		// make list of trusted applications
-		SecTrustedApplicationRef preferencesApp, mainApp;
-		
-		// trust this app and the Elastics.app it belongs to (found by path, not by
-		// asking Launch Services for "an app with this bundle ID", which could be any
-		// copy or impostor registered under that ID)
+		// trust the running app, plus Elastics.app and the Preferences helper inside
+		// it, found by path (not by asking Launch Services for "an app with this bundle
+		// ID", which could be any copy or impostor registered under that ID). Works
+		// whichever of the two apps saves the item.
+		NSMutableArray *trustedApplications = [NSMutableArray array];
+		NSMutableArray *trustedPaths = [NSMutableArray array];
 		NSString *mainAppBundlePath = AccountMainAppBundlePath();
-		
-		status = SecTrustedApplicationCreateFromPath(NULL, &preferencesApp);
+		if (mainAppBundlePath) {
+			[trustedPaths addObject:mainAppBundlePath];
+			NSString *helperPath = [mainAppBundlePath stringByAppendingPathComponent:@"Contents/Helpers/Elastics Preferences.app"];
+			if ([[NSFileManager defaultManager] fileExistsAtPath:helperPath])
+				[trustedPaths addObject:helperPath];
+		}
+
+		SecTrustedApplicationRef trustedApp = NULL;
+		status = SecTrustedApplicationCreateFromPath(NULL, &trustedApp);   // the running app
 		if (status != noErr)
             return status;
+		[trustedApplications addObject:(id)trustedApp];
+		CFRelease(trustedApp);
 
-		if (mainAppBundlePath) {
-			status = SecTrustedApplicationCreateFromPath([mainAppBundlePath fileSystemRepresentation], &mainApp);
-			if (status != noErr) {
-				CFRelease(preferencesApp);
+		NSString *runningAppPath = [[NSBundle mainBundle] bundlePath];
+		for (NSString *path in trustedPaths) {
+			if ([path isEqualToString:runningAppPath])
+				continue;
+			status = SecTrustedApplicationCreateFromPath([path fileSystemRepresentation], &trustedApp);
+			if (status != noErr)
 				return status;
-			}
-			trustedApplications = [NSArray arrayWithObjects:(id)preferencesApp, (id)mainApp, nil];
-			CFRelease(mainApp);
+			[trustedApplications addObject:(id)trustedApp];
+			CFRelease(trustedApp);
 		}
-		else {
-			// e.g. Preferences run on its own: the main app will ask for access instead
-			trustedApplications = [NSArray arrayWithObject:(id)preferencesApp];
-		}
-		CFRelease(preferencesApp);
 		
 		// create an access object
 		status = SecAccessCreate((CFStringRef)kElasticsSecServiceName, (CFArrayRef)trustedApplications, &accessRef);

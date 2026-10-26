@@ -30,6 +30,7 @@
     self = [super init];
     if (self) {
         _accounts = [[NSMutableArray alloc] init];
+		[self importLegacyAccountsIfNeeded];
 		[self loadAccounts];
 
 		// XXX >>
@@ -46,9 +47,11 @@
 	[super dealloc];
 }
 
-- (void)loadAccounts
+// Accounts stored in the keychain under the given service name, or nil if the
+// keychain search itself failed.
+- (NSMutableArray *)_accountsWithServiceName:(NSString *)serviceName
 {
-    const char *serviceNameUTF8 = [kElasticsSecServiceName UTF8String];
+    const char *serviceNameUTF8 = [serviceName UTF8String];
 	
 	OSStatus status;
 	SecKeychainItemRef itemRef = NULL;
@@ -66,45 +69,103 @@
                                                    kSecGenericPasswordItemClass,
                                                    &attributeList,
                                                    &searchRef);
-    
-    if (status == noErr) {
-//        TBTrace(@"loading accounts");
-		[_accounts removeAllObjects];
+    if (status != noErr)
+        return nil;
+
+    NSMutableArray *accounts = [NSMutableArray array];
+
+    while (1) {
+        status = SecKeychainSearchCopyNext(searchRef, &itemRef);
         
-        while (1) {
-            status = SecKeychainSearchCopyNext(searchRef, &itemRef);
+        if (status == noErr) {
+            // NOTE: for some reason unknown, SecKeychainSearchCopyNext sometimes returns the same item multiple times
+            // HACK: to avoid adding duplicates, skip items we already have
+            BOOL duplicate = NO;
+            for (Account *account in accounts) {
+                if (account.itemRef && CFEqual(account.itemRef, itemRef)) {
+                    duplicate = YES;
+                    break;
+                }
+            }
+            if (!duplicate)
+                [accounts addObject:[Account accountWithKeychainItemRef:itemRef]];
             
-            if (status == noErr) {
-                
-                // NOTE: for some reason unknown, SecKeychainSearchCopyNext sometimes returns the same item multiple times
-                // HACK: to avoid adding duplicates, lets see if we already added account with the same itemRef
-                
-                Account *account = [self findAccountWithKeychainItemRef:itemRef];
-                
-                if (account) {
-//                    TBTrace(@"found existing account item, skipping");
-                }
-                else {
-//                    TBTrace(@"adding account item");
-                    account = [Account accountWithKeychainItemRef:itemRef];
-                    [_accounts addObject:account];
-//                    TBTrace(@"account %p: %@", account, account);
-                }
-                
-                TBCFRelease(itemRef);
-            }
-            else if (status == errSecItemNotFound) {
-//                TBTrace(@"done loading accounts");
-                break;
-            }
-            else {
-                NSString *errorMessage = [NSMakeCollectable(SecCopyErrorMessageString(status, NULL)) autorelease];
-                TBLog(@"error loading keychain item: %d, \"%@\"", status, errorMessage);
-                break;
-            }
+            TBCFRelease(itemRef);
         }
-        
-		TBCFRelease(searchRef);
+        else if (status == errSecItemNotFound) {
+            break;
+        }
+        else {
+            NSString *errorMessage = [NSMakeCollectable(SecCopyErrorMessageString(status, NULL)) autorelease];
+            TBLog(@"error loading keychain item: %d, \"%@\"", status, errorMessage);
+            break;
+        }
+    }
+    
+    TBCFRelease(searchRef);
+    return accounts;
+}
+
+- (void)loadAccounts
+{
+    NSMutableArray *accounts = [self _accountsWithServiceName:kElasticsSecServiceName];
+    if (accounts) {
+        [_accounts removeAllObjects];
+        [_accounts addObjectsFromArray:accounts];
+    }
+}
+
+static NSString *const kAccountsImportedLegacyKey = @"importedLegacyAccounts";
+
+// Elastics 1.6 and earlier stored accounts under the com.tundrabot.Elastics
+// keychain service. Copy them, once, into new items under this version's service
+// (whose access lists trust this app), keeping their IDs so the selected account
+// carries over. The old items stay for the old app. Reading each old item makes
+// macOS ask for permission, since its access list doesn't include this app.
+// The "done" flag lives in the Preferences domain so both apps share it.
+- (void)importLegacyAccountsIfNeeded
+{
+    CFStringRef domain = (CFStringRef)kElasticsPreferencesBundleIdentifier;
+    Boolean flagExists = false;
+    CFPreferencesGetAppBooleanValue((CFStringRef)kAccountsImportedLegacyKey, domain, &flagExists);
+    if (flagExists)
+        return;
+
+    NSMutableArray *existing = [self _accountsWithServiceName:kElasticsSecServiceName];
+    NSMutableArray *legacy = [self _accountsWithServiceName:kElasticsLegacySecServiceName];
+    NSUInteger imported = 0;
+
+    // only import into an empty list; if accounts were already set up here, keep them
+    if (existing && [existing count] == 0) {
+        for (Account *oldAccount in legacy) {
+            if (![oldAccount.accessKeyID length] || ![oldAccount.secretAccessKey length])
+                continue;   // access was denied or the item is incomplete
+
+            Account *newAccount = [Account accountWithID:oldAccount.accountId
+                                                    name:oldAccount.name
+                                             accessKeyId:oldAccount.accessKeyID
+                                         secretAccessKey:oldAccount.secretAccessKey
+                                       sshPrivateKeyFile:oldAccount.sshPrivateKeyFile
+                                             sshUserName:oldAccount.sshUserName
+                                                 sshPort:oldAccount.sshPort
+                                              sshOptions:oldAccount.sshOptions];
+            newAccount.defaultRegion = oldAccount.defaultRegion;
+
+            OSStatus status = [newAccount save];
+            if (status == noErr)
+                imported++;
+            else
+                TBLog(@"could not import account \"%@\": %d", oldAccount.title, status);
+        }
+        NSLog(@"Elastics: imported %lu of %lu accounts from the %@ keychain items",
+              (unsigned long)imported, (unsigned long)[legacy count], kElasticsLegacySecServiceName);
+    }
+
+    // don't ask again on the next launch if some items couldn't be read (e.g. the
+    // keychain prompt was denied): the accounts can be re-added in Preferences
+    if (existing) {
+        CFPreferencesSetAppValue((CFStringRef)kAccountsImportedLegacyKey, kCFBooleanTrue, domain);
+        CFPreferencesAppSynchronize(domain);
     }
 }
 
