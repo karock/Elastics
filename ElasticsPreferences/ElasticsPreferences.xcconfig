@@ -8,6 +8,11 @@
 
 #include "../Signing.xcconfig"
 
+// Find project headers (some shared with the main app, one level up) through
+// explicit search paths instead of the deprecated "traditional" header map.
+ALWAYS_SEARCH_USER_PATHS = NO
+USER_HEADER_SEARCH_PATHS = $(SRCROOT) $(SRCROOT)/Classes $(SRCROOT)/.. $(SRCROOT)/../Classes $(SRCROOT)/../API/**
+
 PRODUCT_VERSION = 1.5.2
 
 GCC_WARN_CHECK_SWITCH_STATEMENTS = YES

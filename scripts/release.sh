@@ -15,10 +15,14 @@ cd "$(dirname "$0")/.."
 PROFILE="${NOTARY_PROFILE:-elastics-notary}"
 APP=build/Release/Elastics.app
 
+# clean separately: it removes build/, which would take the build log with it
+xcodebuild -project Elastics.xcodeproj -target Elastics -configuration Release \
+	SYMROOT="$PWD/build" OBJROOT="$PWD/build/obj" clean > /dev/null 2>&1 || true
+
 mkdir -p build
 echo "Building (log: build/xcodebuild.log)..."
 if ! xcodebuild -project Elastics.xcodeproj -target Elastics -configuration Release \
-		SYMROOT="$PWD/build" OBJROOT="$PWD/build/obj" clean build > build/xcodebuild.log 2>&1; then
+		SYMROOT="$PWD/build" OBJROOT="$PWD/build/obj" build > build/xcodebuild.log 2>&1; then
 	grep -E 'error:' build/xcodebuild.log | head -20 || tail -30 build/xcodebuild.log
 	echo "Build failed." >&2
 	exit 1
