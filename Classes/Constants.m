@@ -8,7 +8,12 @@
 
 #import "Constants.h"
 
-NSString *const kElasticsSecServiceName				= @"com.tundrabot.Elastics";
+NSString *const kElasticsSecServiceName				= @"com.audiomack.Elastics";
 
 NSString *const kElasticsBundleShortVersionString	= @"1.7";
-NSString *const kElasticsBundleIdentifier			= @"com.tundrabot.Elastics";
+NSString *const kElasticsBundleIdentifier			= @"com.audiomack.Elastics";
+NSString *const kElasticsPreferencesBundleIdentifier	= @"com.audiomack.Elastics-Preferences";
+
+NSString *const kElasticsLegacySecServiceName				= @"com.tundrabot.Elastics";
+NSString *const kElasticsLegacyBundleIdentifier				= @"com.tundrabot.Elastics";
+NSString *const kElasticsLegacyPreferencesBundleIdentifier	= @"com.tundrabot.Elastics-Preferences";

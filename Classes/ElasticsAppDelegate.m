@@ -22,7 +22,6 @@ const CGFloat kInstanceInfoLabelColumnWidth     = 100.;
 const CGFloat kMessageTableWidth                = 180.;
 
 static NSString *const kElasticsPreferencesApplicationPath	= @"Contents/Helpers/Elastics Preferences.app";
-static NSString *const kElasticsPreferencesSuite			= @"com.tundrabot.Elastics-Preferences";
 
 // Instance menu items carry this tag (and the instance ID as represented object)
 static const NSInteger kInstanceMenuItemTag = -100;
@@ -231,9 +230,12 @@ static NSImage *_brImage;
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification
 {
+	// bring over settings saved under the old com.tundrabot identifiers (once)
+	[NSUserDefaults importLegacyElasticsPreferences];
+
 	// register preferences set through Preferences helper app and defaults
 	NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-	[userDefaults addSuiteNamed:kElasticsPreferencesSuite];
+	[userDefaults addSuiteNamed:kElasticsPreferencesBundleIdentifier];
 	[userDefaults registerDefaults:[userDefaults defaultElasticsPreferences]];
 
 	// load accounts

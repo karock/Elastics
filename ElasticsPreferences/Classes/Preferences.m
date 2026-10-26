@@ -8,12 +8,13 @@
 
 #import "Preferences.h"
 #import "AWSConstants.h"
+#import "Constants.h"
 
 // Distributed notification sent when preferences are changed
-NSString *const kPreferencesDidChangeNotification       = @"com.tundrabot.Elastics.PreferencesDidChangeNotification";
+NSString *const kPreferencesDidChangeNotification       = @"com.audiomack.Elastics.PreferencesDidChangeNotification";
 
 // Distributed notification sent when main application terminates
-NSString *const kPreferencesShouldTerminateNotification = @"com.tundrabot.Elastics.PreferencesShouldTerminateNotification";
+NSString *const kPreferencesShouldTerminateNotification = @"com.audiomack.Elastics.PreferencesShouldTerminateNotification";
 
 // Preference dictionary keys
 static NSString *const kPreferencesAccountIdKey                             = @"accountId";
@@ -61,6 +62,48 @@ static NSString *const kPreferencesRdpApplicationKey                        = @"
 static NSString *const kPreferencesFirstLaunchKey                           = @"firstLaunch";
 
 @implementation NSUserDefaults (ElasticsPreferences)
+
+static NSString *const kPreferencesImportedLegacyKey = @"importedLegacyPreferences";
+
+static void PreferencesImportLegacyDomain(NSString *legacyDomain, NSString *domain)
+{
+    CFStringRef domainRef = (CFStringRef)domain;
+
+    // already done (or nothing to do) for this domain
+    Boolean flagExists = false;
+    CFPreferencesGetAppBooleanValue((CFStringRef)kPreferencesImportedLegacyKey, domainRef, &flagExists);
+    if (flagExists)
+        return;
+
+    CFArrayRef keys = CFPreferencesCopyKeyList((CFStringRef)legacyDomain, kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
+    if (keys) {
+        CFDictionaryRef values = CFPreferencesCopyMultiple(keys, (CFStringRef)legacyDomain, kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
+        if (values) {
+            NSUInteger imported = 0;
+            for (NSString *key in (NSDictionary *)values) {
+                CFPropertyListRef existing = CFPreferencesCopyAppValue((CFStringRef)key, domainRef);
+                if (existing) {
+                    CFRelease(existing);   // never overwrite a setting made in this version
+                    continue;
+                }
+                CFPreferencesSetAppValue((CFStringRef)key, CFDictionaryGetValue(values, key), domainRef);
+                imported++;
+            }
+            NSLog(@"Elastics: imported %lu settings from %@ into %@", (unsigned long)imported, legacyDomain, domain);
+            CFRelease(values);
+        }
+        CFRelease(keys);
+    }
+
+    CFPreferencesSetAppValue((CFStringRef)kPreferencesImportedLegacyKey, kCFBooleanTrue, domainRef);
+    CFPreferencesAppSynchronize(domainRef);
+}
+
++ (void)importLegacyElasticsPreferences
+{
+    PreferencesImportLegacyDomain(kElasticsLegacyBundleIdentifier, kElasticsBundleIdentifier);
+    PreferencesImportLegacyDomain(kElasticsLegacyPreferencesBundleIdentifier, kElasticsPreferencesBundleIdentifier);
+}
 
 - (NSDictionary *)defaultElasticsPreferences
 {

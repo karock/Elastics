@@ -313,7 +313,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = ElasticsPreferences_Prefix.pch;
 				INFOPLIST_FILE = Info.plist;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tundrabot.Elastics-Preferences;
+				PRODUCT_BUNDLE_IDENTIFIER = com.audiomack.Elastics-Preferences;
 				INSTALL_PATH = "$(HOME)/Applications";
 				PRODUCT_NAME = "Elastics Preferences";
 			};
@@ -326,7 +326,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = ElasticsPreferences_Prefix.pch;
 				INFOPLIST_FILE = Info.plist;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tundrabot.Elastics-Preferences;
+				PRODUCT_BUNDLE_IDENTIFIER = com.audiomack.Elastics-Preferences;
 				INSTALL_PATH = "$(HOME)/Applications";
 				PRODUCT_NAME = "Elastics Preferences";
 				SKIP_INSTALL = YES;
@@ -400,7 +400,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = ElasticsPreferences_Prefix.pch;
 				INFOPLIST_FILE = Info.plist;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tundrabot.Elastics-Preferences;
+				PRODUCT_BUNDLE_IDENTIFIER = com.audiomack.Elastics-Preferences;
 				INSTALL_PATH = "$(HOME)/Applications";
 				PRODUCT_NAME = "Elastics Preferences";
 			};
@@ -429,7 +429,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = ElasticsPreferences_Prefix.pch;
 				INFOPLIST_FILE = Info.plist;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tundrabot.Elastics-Preferences;
+				PRODUCT_BUNDLE_IDENTIFIER = com.audiomack.Elastics-Preferences;
 				INSTALL_PATH = "$(HOME)/Applications";
 				PRODUCT_NAME = "Elastics Preferences";
 				SKIP_INSTALL = YES;

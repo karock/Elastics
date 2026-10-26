@@ -27,6 +27,11 @@ enum {
 
 - (NSDictionary *)defaultElasticsPreferences;
 
+// Copies settings saved by Elastics 1.6 and earlier (com.tundrabot.Elastics and
+// com.tundrabot.Elastics-Preferences) into this version's domains, once per domain,
+// without overwriting anything already set. Safe to call from both apps.
++ (void)importLegacyElasticsPreferences;
+
 // Selected account ID
 @property (nonatomic, assign) NSInteger accountId;
 

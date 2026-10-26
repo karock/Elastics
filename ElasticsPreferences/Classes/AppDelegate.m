@@ -104,6 +104,9 @@ static NSString *const kElasticsSendFeedbackURL = @"https://github.com/karock/El
 	[NSValueTransformer setValueTransformer:sshPortTransformer
 									forName:@"SshPortValueTransformer"];
 	
+	// bring over settings saved under the old com.tundrabot identifiers (once)
+	[NSUserDefaults importLegacyElasticsPreferences];
+
 	// register default preference values
 	NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
 	[userDefaults registerDefaults:[userDefaults defaultElasticsPreferences]];
