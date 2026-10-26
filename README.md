@@ -66,7 +66,38 @@ xcodebuild -project Elastics.xcodeproj -target Elastics -configuration Release \
   SYMROOT="$PWD/build" OBJROOT="$PWD/build/obj"
 ```
 
-The app is built to `build/Release/Elastics.app` and signed to run locally.
+The app is built to `build/Release/Elastics.app`, universal (Apple Silicon and
+Intel), for macOS 13 and later.
+
+### Signing
+
+By default the app is signed to run locally: it works on the Mac that built it,
+but macOS asks again for keychain access after every rebuild, and other Macs
+won't open it without a security override.
+
+To sign with your own certificate:
+
+```
+scripts/configure-signing.sh
+```
+
+This finds a "Developer ID Application" certificate in your keychain (or else an
+"Apple Development" one) and writes `Signing.local.xcconfig`, which is not
+committed. Pass part of a certificate name to choose one, or `--reset` to go back
+to the local signature.
+
+- **Apple Development** certificate: builds keep the same signature, so keychain
+  "Always Allow" sticks across rebuilds, but they are for your own Macs only.
+- **Developer ID Application** certificate: builds can be notarized and given to
+  others. Store your notarization credentials once:
+
+  ```
+  xcrun notarytool store-credentials elastics-notary \
+    --apple-id you@example.com --team-id YOURTEAMID --password <app-specific-password>
+  ```
+
+  then run `scripts/release.sh`, which builds, verifies, notarizes, staples and
+  writes `build/dist/Elastics-<version>.zip`.
 
 ## License
 

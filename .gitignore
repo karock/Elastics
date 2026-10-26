@@ -17,3 +17,5 @@ DerivedData
 *.ipa
 *.xcuserstate
 
+# Personal code signing settings (scripts/configure-signing.sh)
+Signing.local.xcconfig

@@ -337,8 +337,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = C3F1A54412C78F1E001AB554 /* ElasticsPreferences.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
 				ENABLE_HARDENED_RUNTIME = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
@@ -360,8 +358,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = C3F1A54412C78F1E001AB554 /* ElasticsPreferences.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
 				ENABLE_HARDENED_RUNTIME = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
@@ -378,8 +374,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = C3F1A54412C78F1E001AB554 /* ElasticsPreferences.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
 				ENABLE_HARDENED_RUNTIME = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
@@ -416,8 +410,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = C3F1A54412C78F1E001AB554 /* ElasticsPreferences.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
 				ENABLE_HARDENED_RUNTIME = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";

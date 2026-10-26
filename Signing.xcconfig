@@ -1,0 +1,16 @@
+//
+//  Signing.xcconfig
+//  Code signing for Elastics and Elastics Preferences (included by both projects).
+//
+//  Defaults to "Sign to Run Locally" (ad-hoc), which works on the Mac that built it.
+//  To sign with your own certificate, run scripts/configure-signing.sh: it writes
+//  Signing.local.xcconfig (git-ignored) with your identity and team, which
+//  overrides the values below.
+//
+
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = -
+DEVELOPMENT_TEAM =
+OTHER_CODE_SIGN_FLAGS =
+
+#include? "Signing.local.xcconfig"

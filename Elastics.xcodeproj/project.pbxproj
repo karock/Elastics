@@ -761,8 +761,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = C32C28C912C0C09200F2C136 /* Elastics.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
 				ENABLE_HARDENED_RUNTIME = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
@@ -783,8 +781,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = C32C28C912C0C09200F2C136 /* Elastics.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
 				ENABLE_HARDENED_RUNTIME = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
@@ -800,8 +796,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = C32C28C912C0C09200F2C136 /* Elastics.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
 				ENABLE_HARDENED_RUNTIME = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
@@ -838,8 +832,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = C32C28C912C0C09200F2C136 /* Elastics.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
 				ENABLE_HARDENED_RUNTIME = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
