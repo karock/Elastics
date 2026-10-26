@@ -455,7 +455,7 @@ enum {
                                              defaultButton:@"Dismiss"
                                            alternateButton:nil
                                                otherButton:nil
-                                 informativeTextWithFormat:errorText];
+                                 informativeTextWithFormat:@"%@", errorText];
             
             [alert beginSheetModalForWindow:[NSApp mainWindow]
                               modalDelegate:nil
