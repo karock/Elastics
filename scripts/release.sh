@@ -47,6 +47,16 @@ case "$authority" in
 		exit 0 ;;
 esac
 
+# notarization rejects executables that allow debugging (get-task-allow); check
+# both apps here rather than waiting minutes for Apple to say so
+for bundle in "$APP" "$APP/Contents/Helpers/Elastics Preferences.app"; do
+	if codesign -d --entitlements - "$bundle" 2>/dev/null | grep -q 'get-task-allow'; then
+		echo "$bundle has the get-task-allow entitlement, which notarization rejects." >&2
+		echo "Check CODE_SIGN_INJECT_BASE_ENTITLEMENTS in Signing.xcconfig." >&2
+		exit 1
+	fi
+done
+
 mkdir -p build/dist
 zip="build/dist/Elastics-$version.zip"
 rm -f "$zip"

@@ -13,4 +13,10 @@ CODE_SIGN_IDENTITY = -
 DEVELOPMENT_TEAM =
 OTHER_CODE_SIGN_FLAGS =
 
+// Xcode otherwise adds com.apple.security.get-task-allow (lets debuggers attach)
+// to every build it signs, and notarization rejects executables that have it.
+// Keep it for Debug builds only.
+CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO
+CODE_SIGN_INJECT_BASE_ENTITLEMENTS[config=Debug] = YES
+
 #include? "Signing.local.xcconfig"
