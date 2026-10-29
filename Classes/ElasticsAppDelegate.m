@@ -781,15 +781,16 @@ static NSImage *_brImage;
 		}
 
 		case kPreferencesGroupingAutomaticNamePrefix: {
-			// the text before the first - _ . or space, when 2+ instances share it (ignoring case)
+			// the text before the first - _ . or space (or the whole name, so "ghost" joins
+			// "ghost-1" and "ghost-2"), when 2+ instances share it (ignoring case)
 			NSCharacterSet *separators = [NSCharacterSet characterSetWithCharactersInString:@"-_. "];
 			NSMutableDictionary *membersByKey = [NSMutableDictionary dictionary];
 			NSMutableDictionary *titlesByKey = [NSMutableDictionary dictionary];
 			for (EC2Instance *instance in instances) {
 				NSRange separator = [instance.title rangeOfCharacterFromSet:separators];
-				if (separator.location == NSNotFound || separator.location == 0)
+				if (separator.location == 0)
 					continue;
-				NSString *prefix = [instance.title substringToIndex:separator.location];
+				NSString *prefix = (separator.location == NSNotFound) ? instance.title : [instance.title substringToIndex:separator.location];
 				NSString *key = [prefix lowercaseString];
 				NSMutableArray *members = [membersByKey objectForKey:key];
 				if (!members) {
@@ -846,9 +847,17 @@ static NSImage *_brImage;
 	for (EC2Instance *instance in ordered)
 		[submenu addItem:[self instanceItemWithInstance:instance]];
 
-	NSMenuItem *item = [self actionItemWithLabel:title
-											info:[NSString stringWithFormat:@"%lu", (unsigned long)[instances count]]
-										  action:NULL];
+	// the count goes in the menu's own badge (macOS 14+), which sits clear of the
+	// submenu arrow; a two-column text title would overlap it
+	NSMenuItem *item = [[[NSMenuItem alloc] initWithTitle:title action:NULL keyEquivalent:@""] autorelease];
+	NSString *displayTitle = title;
+	if (@available(macOS 14.0, *))
+		[item setBadge:[NSMenuItemBadge badgeWithCount:[instances count]]];
+	else
+		displayTitle = [NSString stringWithFormat:@"%@ (%lu)", title, (unsigned long)[instances count]];
+	[item setAttributedTitle:[[[NSAttributedString alloc] initWithString:displayTitle
+															  attributes:_taggedInstanceAttributes] autorelease]];
+	[item setIndentationLevel:1];
 	[item setImage:[NSImage imageWithSystemSymbolName:@"folder" accessibilityDescription:@"Group"]];
 	[item setSubmenu:submenu];
 	[item setTag:kInstanceGroupMenuItemTag];

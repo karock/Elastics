@@ -677,7 +677,7 @@ static NSTextField *AppDelegateLabel(NSString *text, NSRect frame, BOOL small)
             hint = @"Comma-separated. Each instance goes in the group of the longest prefix its name starts with (ignoring case).";
             break;
         case kPreferencesGroupingAutomaticNamePrefix:
-            hint = @"Groups names by the text before the first -, _, . or space, when two or more instances share it (e.g. prod-web-1 and prod-db-1).";
+            hint = @"Groups names by the text before the first -, _, . or space, when two or more instances share it (e.g. prod, prod-web-1 and prod-db-1).";
             break;
         case kPreferencesGroupingTag:
             [_groupingFieldLabel setStringValue:@"Tag key:"];

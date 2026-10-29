@@ -27,7 +27,7 @@ Long instance lists can be grouped into submenus. In Preferences > General, choo
 |---|---|
 | By VPC | The VPC's Name tag ("Default VPC" if unnamed; the VPC ID until names load) |
 | By name prefixes | The longest prefix from your comma-separated list that the name starts with (ignoring case), e.g. `Prod, Dev, Staging` |
-| By automatic name prefix | The text before the first `-`, `_`, `.` or space, when at least two instances share it (`prod-web-1`, `prod-db-1` -> `prod`) |
+| By automatic name prefix | The text before the first `-`, `_`, `.` or space (or the whole name), when at least two instances share it (`prod`, `prod-web-1`, `prod-db-1` -> `prod`) |
 | By tag | The value of a tag you name, e.g. `Environment`, or `aws:autoscaling:groupName` for Auto Scaling groups |
 
 Instances that don't fit a group stay in the main list below the groups. Separately,
