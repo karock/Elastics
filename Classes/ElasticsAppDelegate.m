@@ -8,6 +8,7 @@
 
 #import "ElasticsAppDelegate.h"
 #import "DataSource.h"
+#import "EC2Tag.h"
 #import "ChartView.h"
 #import "Preferences.h"
 #import "AccountsManager.h"
@@ -71,6 +72,9 @@ static NSString *ElasticsAppleScriptEscape(NSString *value)
 - (NSMenuItem *)regionItemWithRegion:(NSString *)awsRegion info:(NSString *)info;
 - (NSMenuItem *)chartItemWithRange:(NSUInteger)range datapoints:(NSArray *)datapoints;
 - (NSMenuItem *)infoItemWithLabel:(NSString *)label info:(NSString *)info action:(SEL)action tooltip:(NSString *)tooltip;
+- (NSMenuItem *)infoItemWithLabel:(NSString *)label info:(NSString *)info action:(SEL)action tooltip:(NSString *)tooltip
+					   tableWidth:(CGFloat)tableWidth labelWidth:(CGFloat)labelWidth;
+- (NSMenuItem *)tagsItemForInstance:(EC2Instance *)instance;
 - (NSMenuItem *)actionItemWithLabel:(NSString *)label info:(NSString *)info action:(SEL)action;
 - (NSMenuItem *)dummyItem;
 
@@ -1039,14 +1043,21 @@ static NSImage *_brImage;
 
 - (NSMenuItem *)infoItemWithLabel:(NSString *)label info:(NSString *)info action:(SEL)action tooltip:(NSString *)tooltip
 {
+	return [self infoItemWithLabel:label info:info action:action tooltip:tooltip
+						tableWidth:kInstanceInfoTableWidth labelWidth:kInstanceInfoLabelColumnWidth];
+}
+
+- (NSMenuItem *)infoItemWithLabel:(NSString *)label info:(NSString *)info action:(SEL)action tooltip:(NSString *)tooltip
+					   tableWidth:(CGFloat)tableWidth labelWidth:(CGFloat)labelWidth
+{
 	NSTextTable *table = [[[NSTextTable alloc] init] autorelease];
 	[table setNumberOfColumns:2];
 	[table setLayoutAlgorithm:NSTextTableAutomaticLayoutAlgorithm];
-	[table setContentWidth:kInstanceInfoTableWidth type:NSTextBlockAbsoluteValueType];
+	[table setContentWidth:tableWidth type:NSTextBlockAbsoluteValueType];
 	[table setHidesEmptyCells:NO];
 
 	NSTextTableBlock *labelBlock = [[[NSTextTableBlock alloc] initWithTable:table startingRow:0 rowSpan:1 startingColumn:0 columnSpan:1] autorelease];
-	[labelBlock setContentWidth:kInstanceInfoLabelColumnWidth type:NSTextBlockAbsoluteValueType];
+	[labelBlock setContentWidth:labelWidth type:NSTextBlockAbsoluteValueType];
 
 	NSTextTableBlock *infoBlock = [[[NSTextTableBlock alloc] initWithTable:table startingRow:0 rowSpan:1 startingColumn:1 columnSpan:1] autorelease];
 
@@ -1194,6 +1205,9 @@ static NSImage *_brImage;
 	NSString *stateReason = [instance stateReasonTitle];
 	if (stateReason)
 		[menu addItem:[self infoItemWithLabel:@"State Reason" info:stateReason action:NULL tooltip:instance.stateReasonMessage]];
+	NSMenuItem *tagsItem = [self tagsItemForInstance:instance];
+	if (tagsItem)
+		[menu addItem:tagsItem];
 
 	if ([instance.ipAddress length] > 0 || [instance.privateIpAddress length] > 0) {
 		[menu addItem:[NSMenuItem separatorItem]];
@@ -1242,6 +1256,47 @@ static NSImage *_brImage;
 //	[menu addItem:[NSMenuItem separatorItem]];
 //	[menu addItem:[self actionItemWithLabel:@"Restart..." action:@selector(connectToInstanceAction:)]];
 //	[menu addItem:[self actionItemWithLabel:@"Terminate..." action:@selector(connectToInstanceAction:)]];
+}
+
+// "Tags ▸" row (tag count) with a submenu of key/value rows, sorted by key with
+// AWS-managed aws: tags last; clicking a row copies the value. nil without tags.
+// The submenu has no delegate: menu delegate methods treat a menu's title as an
+// instance ID.
+- (NSMenuItem *)tagsItemForInstance:(EC2Instance *)instance
+{
+	NSArray *tags = [instance sortedTags];
+	if (![tags count])
+		return nil;
+
+	NSMenu *submenu = [[[NSMenu alloc] initWithTitle:@"Tags"] autorelease];
+	[submenu setAutoenablesItems:NO];
+	[submenu setShowsStateColumn:NO];
+	[submenu addItem:[self titleItemWithTitle:@"TAGS"]];
+
+	BOOL addedSeparator = NO;
+	for (EC2Tag *tag in tags) {
+		if (!addedSeparator && [[tag.key lowercaseString] hasPrefix:@"aws:"] && [[submenu itemArray] count] > 1) {
+			[submenu addItem:[NSMenuItem separatorItem]];   // user tags above, AWS-managed tags below
+			addedSeparator = YES;
+		}
+		NSString *value = [tag.value length] ? tag.value : @"";
+		NSMenuItem *item = [self infoItemWithLabel:tag.key
+											  info:([value length] ? value : @"\u2014")
+											action:@selector(copyToPasteboardAction:)
+										   tooltip:[NSString stringWithFormat:@"Copy value of %@", tag.key]
+										tableWidth:420.f
+										labelWidth:200.f];
+		[item setRepresentedObject:value];   // copied by copyToPasteboardAction:
+		[submenu addItem:item];
+	}
+
+	NSMenuItem *item = [self infoItemWithLabel:@"Tags"
+										  info:[NSString stringWithFormat:@"%lu", (unsigned long)[tags count]]
+										action:NULL
+									   tooltip:nil];
+	[item setEnabled:YES];   // NULL action disables info rows; this one opens a submenu
+	[item setSubmenu:submenu];
+	return item;
 }
 
 // Storage rows: the root device type, then one row per attached EBS volume (root
