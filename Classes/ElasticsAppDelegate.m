@@ -25,6 +25,8 @@ static NSString *const kElasticsPreferencesApplicationPath	= @"Contents/Helpers/
 
 // Instance menu items carry this tag (and the instance ID as represented object)
 static const NSInteger kInstanceMenuItemTag = -100;
+// Group menu items (a submenu of instance items) carry this tag
+static const NSInteger kInstanceGroupMenuItemTag = -101;
 
 // Quote a value as one POSIX shell word: 'it'\''s' -> it's
 static NSString *ElasticsShellQuote(NSString *value)
@@ -42,6 +44,14 @@ static NSString *ElasticsAppleScriptEscape(NSString *value)
 @interface ElasticsAppDelegate () <NSSearchFieldDelegate>
 
 - (void)setUpSearchItem;
+- (BOOL)isSearching;
+- (void)showInstances:(NSArray *)instances afterItem:(NSMenuItem *)titleItem;
+- (void)rebuildInstanceSection;
+- (NSArray *)groupedInstanceItems;
+- (NSDictionary *)groupTitlesByInstanceId:(NSArray *)instances;
+- (NSMenuItem *)groupItemWithTitle:(NSString *)title instances:(NSArray *)instances;
+- (NSArray *)allInstanceMenuItems;
+- (void)filterInstanceItems;
 - (void)removeMenuItemsBelowSearch;
 - (void)applySearchFilter;
 - (BOOL)instance:(EC2Instance *)instance matchesSearchTerms:(NSArray *)terms;
@@ -104,6 +114,10 @@ static NSString *ElasticsAppleScriptEscape(NSString *value)
 	NSMenuItem		*_searchItem;       // always the first item of the status menu
 	NSSearchField	*_searchField;
 	NSMenuItem		*_noMatchesItem;    // shown when the search hides every instance
+	NSMenuItem		*_instancesTitleItem;   // "INSTANCES"; the instance section follows it
+	NSArray			*_displayedInstances;   // EC2Instance, in display order
+	NSMutableArray	*_instanceSectionItems; // top-level items currently in the instance section
+	BOOL			_instanceSectionIsFlat; // YES while searching: no groups, every instance listed
 }
 
 @synthesize aboutPanel = _aboutPanel;
@@ -325,6 +339,9 @@ static NSImage *_brImage;
 	[_searchItem release];
 	[_searchField release];
 	[_noMatchesItem release];
+	[_instancesTitleItem release];
+	[_displayedInstances release];
+	[_instanceSectionItems release];
 
 	[super dealloc];
 }
@@ -435,13 +452,9 @@ static NSImage *_brImage;
             if (instancesCount > 0) {
                 // there are instances
                 
-                [_statusMenu addItem:[self titleItemWithTitle:@"INSTANCES"]];
-                
-                for (EC2Instance *instance in instances) {
-                    [_statusMenu addItem:[self instanceItemWithInstance:instance]];
-                }
-                [_statusMenu addItem:_noMatchesItem];
-                [self applySearchFilter];
+                NSMenuItem *titleItem = [self titleItemWithTitle:@"INSTANCES"];
+                [_statusMenu addItem:titleItem];
+                [self showInstances:instances afterItem:titleItem];
                 
                 [self addMenuActionItems];
             }
@@ -483,24 +496,29 @@ static NSImage *_brImage;
             }
         }
     }
+    else if ([refreshType isEqualToString:kDataSourceVpcsRefreshType]) {
+        // VPC names arrived: relabel the groups (a failure just leaves VPC IDs)
+        if (![userInfo objectForKey:kDataSourceErrorInfoKey]
+            && [[NSUserDefaults standardUserDefaults] groupingMode] == kPreferencesGroupingVPC
+            && ![self isSearching])
+            [self rebuildInstanceSection];
+    }
     else {
-        // instance refresh
+        // instance refresh (the instance's item may be inside a group submenu)
 
-//        TBTrace(@"%@", refreshType);
-        
         EC2Instance *instance = [dataSource instance:refreshType];
-        
-        NSUInteger menuItemIdx = [[_statusMenu itemArray] indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop) {
-            *stop = [[obj representedObject] isEqualToString:refreshType];
-            return *stop;
-        }];
-        
-        if (instance && menuItemIdx != NSNotFound) {
-            NSMenu *instanceSubmenu = [[[_statusMenu itemArray] objectAtIndex:menuItemIdx] submenu];
-            [self refreshSubmenu:instanceSubmenu forInstance:instance];
+        NSMenuItem *instanceItem = nil;
+        for (NSMenuItem *item in [self allInstanceMenuItems]) {
+            if ([[item representedObject] isEqualToString:refreshType]) {
+                instanceItem = item;
+                break;
+            }
         }
+
+        if (instance && [instanceItem submenu])
+            [self refreshSubmenu:[instanceItem submenu] forInstance:instance];
         else
-            TBTrace(@"instance not found: %@ %zd", instance, menuItemIdx);
+            TBTrace(@"instance not found: %@", refreshType);
     }
 }
 
@@ -548,9 +566,25 @@ static NSImage *_brImage;
 		[self applySearchFilter];
 }
 
+- (BOOL)isSearching
+{
+	return [[[_searchField stringValue] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] length] > 0;
+}
+
+// Called as the search text changes: switch between the grouped list and the flat
+// search list when searching starts or stops, then filter.
+- (void)applySearchFilter
+{
+	if ([self isSearching] != _instanceSectionIsFlat)
+		[self rebuildInstanceSection];
+	else
+		[self filterInstanceItems];
+}
+
 // Hide instance items that don't match. Every word typed must appear (case- and
 // diacritic-insensitive) in the name, instance ID, type, private or public IP.
-- (void)applySearchFilter
+// Only top-level items are filtered: while searching, every instance is top-level.
+- (void)filterInstanceItems
 {
 	NSCharacterSet *whitespace = [NSCharacterSet whitespaceAndNewlineCharacterSet];
 	NSMutableArray *terms = [NSMutableArray array];
@@ -592,6 +626,247 @@ static NSImage *_brImage;
 			return NO;
 	}
 	return YES;
+}
+
+#pragma mark - Instance section and grouping
+
+- (void)showInstances:(NSArray *)instances afterItem:(NSMenuItem *)titleItem
+{
+	[_displayedInstances release];
+	_displayedInstances = [instances retain];
+	[_instancesTitleItem release];
+	_instancesTitleItem = [titleItem retain];
+	[self rebuildInstanceSection];
+}
+
+// Replace the items after "INSTANCES": groups (or a flat list while searching),
+// then the "no matches" notice. Leaves the rest of the menu, and the search field
+// with its focus, untouched.
+- (void)rebuildInstanceSection
+{
+	if (!_instanceSectionItems)
+		_instanceSectionItems = [[NSMutableArray alloc] init];
+
+	for (NSMenuItem *item in _instanceSectionItems) {
+		if ([item menu] == _statusMenu)
+			[_statusMenu removeItem:item];
+	}
+	[_instanceSectionItems removeAllObjects];
+
+	NSInteger titleIndex = _instancesTitleItem ? [_statusMenu indexOfItem:_instancesTitleItem] : -1;
+	if (titleIndex < 0)
+		return;   // no instance list shown (error, or no instances)
+
+	_instanceSectionIsFlat = [self isSearching];
+
+	NSMutableArray *items = [NSMutableArray array];
+	if (_instanceSectionIsFlat) {
+		for (EC2Instance *instance in _displayedInstances)
+			[items addObject:[self instanceItemWithInstance:instance]];
+	}
+	else {
+		[items addObjectsFromArray:[self groupedInstanceItems]];
+	}
+	[items addObject:_noMatchesItem];
+
+	NSInteger index = titleIndex + 1;
+	for (NSMenuItem *item in items) {
+		[_statusMenu insertItem:item atIndex:index++];
+		[_instanceSectionItems addObject:item];
+	}
+
+	[self filterInstanceItems];
+}
+
+// Groups (sorted by title), then ungrouped instances, then "Stopped" if enabled.
+// With no grouping and no Stopped group this is the plain list.
+- (NSArray *)groupedInstanceItems
+{
+	BOOL groupStopped = [[NSUserDefaults standardUserDefaults] isGroupStoppedInstances];
+
+	NSMutableArray *stopped = [NSMutableArray array];
+	NSMutableArray *candidates = [NSMutableArray array];
+	for (EC2Instance *instance in _displayedInstances) {
+		if (groupStopped && [instance isStopped])
+			[stopped addObject:instance];
+		else
+			[candidates addObject:instance];
+	}
+
+	NSDictionary *groupTitles = [self groupTitlesByInstanceId:candidates];   // instance ID -> group title
+
+	NSMutableDictionary *groups = [NSMutableDictionary dictionary];           // group title -> instances
+	NSMutableArray *ungrouped = [NSMutableArray array];
+	for (EC2Instance *instance in candidates) {
+		NSString *groupTitle = [groupTitles objectForKey:instance.instanceId];
+		if (!groupTitle) {
+			[ungrouped addObject:instance];
+			continue;
+		}
+		NSMutableArray *members = [groups objectForKey:groupTitle];
+		if (!members) {
+			members = [NSMutableArray array];
+			[groups setObject:members forKey:groupTitle];
+		}
+		[members addObject:instance];
+	}
+
+	NSMutableArray *items = [NSMutableArray array];
+	NSArray *sortedTitles = [[groups allKeys] sortedArrayUsingSelector:@selector(localizedStandardCompare:)];
+	for (NSString *groupTitle in sortedTitles)
+		[items addObject:[self groupItemWithTitle:groupTitle instances:[groups objectForKey:groupTitle]]];
+
+	for (EC2Instance *instance in ungrouped)
+		[items addObject:[self instanceItemWithInstance:instance]];
+
+	if ([stopped count])
+		[items addObject:[self groupItemWithTitle:@"Stopped" instances:stopped]];
+
+	return items;
+}
+
+// Which group each instance belongs to under the current grouping setting
+// (instance ID -> group title). Instances without a group are left out.
+- (NSDictionary *)groupTitlesByInstanceId:(NSArray *)instances
+{
+	NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+	NSCharacterSet *whitespace = [NSCharacterSet whitespaceAndNewlineCharacterSet];
+	NSMutableDictionary *result = [NSMutableDictionary dictionary];
+
+	switch ([userDefaults groupingMode]) {
+		case kPreferencesGroupingVPC: {
+			// VPC name (Name tag) once loaded, otherwise the VPC ID; two VPCs with the
+			// same name get their IDs added to tell them apart
+			DataSource *dataSource = [DataSource sharedDataSource];
+			NSMutableDictionary *vpcIdsByTitle = [NSMutableDictionary dictionary];
+			for (EC2Instance *instance in instances) {
+				if (![instance.vpcId length])
+					continue;
+				NSString *title = [[dataSource vpcWithId:instance.vpcId] title];
+				if (![title length])
+					title = instance.vpcId;
+				NSString *knownId = [vpcIdsByTitle objectForKey:title];
+				if (knownId && ![knownId isEqualToString:instance.vpcId])
+					title = [NSString stringWithFormat:@"%@ (%@)", title, instance.vpcId];
+				else
+					[vpcIdsByTitle setObject:instance.vpcId forKey:title];
+				[result setObject:title forKey:instance.instanceId];
+			}
+			break;
+		}
+
+		case kPreferencesGroupingNamePrefixes: {
+			// the longest matching prefix wins, ignoring case; groups are titled as typed
+			NSMutableArray *prefixes = [NSMutableArray array];
+			for (NSString *prefix in [[userDefaults groupingNamePrefixes] componentsSeparatedByString:@","]) {
+				NSString *trimmed = [prefix stringByTrimmingCharactersInSet:whitespace];
+				if ([trimmed length])
+					[prefixes addObject:trimmed];
+			}
+			for (EC2Instance *instance in instances) {
+				NSString *best = nil;
+				for (NSString *prefix in prefixes) {
+					NSRange range = [instance.title rangeOfString:prefix options:NSCaseInsensitiveSearch | NSAnchoredSearch];
+					if (range.location != NSNotFound && [prefix length] > [best length])
+						best = prefix;
+				}
+				if (best)
+					[result setObject:best forKey:instance.instanceId];
+			}
+			break;
+		}
+
+		case kPreferencesGroupingAutomaticNamePrefix: {
+			// the text before the first - _ . or space, when 2+ instances share it (ignoring case)
+			NSCharacterSet *separators = [NSCharacterSet characterSetWithCharactersInString:@"-_. "];
+			NSMutableDictionary *membersByKey = [NSMutableDictionary dictionary];
+			NSMutableDictionary *titlesByKey = [NSMutableDictionary dictionary];
+			for (EC2Instance *instance in instances) {
+				NSRange separator = [instance.title rangeOfCharacterFromSet:separators];
+				if (separator.location == NSNotFound || separator.location == 0)
+					continue;
+				NSString *prefix = [instance.title substringToIndex:separator.location];
+				NSString *key = [prefix lowercaseString];
+				NSMutableArray *members = [membersByKey objectForKey:key];
+				if (!members) {
+					members = [NSMutableArray array];
+					[membersByKey setObject:members forKey:key];
+					[titlesByKey setObject:prefix forKey:key];
+				}
+				[members addObject:instance.instanceId];
+			}
+			for (NSString *key in membersByKey) {
+				NSArray *members = [membersByKey objectForKey:key];
+				if ([members count] < 2)
+					continue;
+				for (NSString *instanceId in members)
+					[result setObject:[titlesByKey objectForKey:key] forKey:instanceId];
+			}
+			break;
+		}
+
+		case kPreferencesGroupingTag: {
+			NSString *tagKey = [[userDefaults groupingTagKey] stringByTrimmingCharactersInSet:whitespace];
+			if (![tagKey length])
+				break;
+			for (EC2Instance *instance in instances) {
+				NSString *value = [[instance tagValueForKey:tagKey] stringByTrimmingCharactersInSet:whitespace];
+				if ([value length])
+					[result setObject:value forKey:instance.instanceId];
+			}
+			break;
+		}
+
+		default:
+			break;
+	}
+
+	return result;
+}
+
+// A group: folder icon, title, instance count, and a submenu of its instances with
+// running ones first (otherwise in list order). The submenu deliberately has no
+// delegate: the menu delegate methods treat a menu's title as an instance ID.
+- (NSMenuItem *)groupItemWithTitle:(NSString *)title instances:(NSArray *)instances
+{
+	NSArray *ordered = [instances sortedArrayWithOptions:NSSortStable usingComparator:^NSComparisonResult(id a, id b) {
+		BOOL aRunning = ((((EC2Instance *)a).instanceState.code & 0xFF) == EC2_INSTANCE_STATE_RUNNING);
+		BOOL bRunning = ((((EC2Instance *)b).instanceState.code & 0xFF) == EC2_INSTANCE_STATE_RUNNING);
+		if (aRunning == bRunning)
+			return NSOrderedSame;
+		return aRunning ? NSOrderedAscending : NSOrderedDescending;
+	}];
+
+	NSMenu *submenu = [[[NSMenu alloc] initWithTitle:title] autorelease];
+	[submenu setAutoenablesItems:NO];
+	for (EC2Instance *instance in ordered)
+		[submenu addItem:[self instanceItemWithInstance:instance]];
+
+	NSMenuItem *item = [self actionItemWithLabel:title
+											info:[NSString stringWithFormat:@"%lu", (unsigned long)[instances count]]
+										  action:NULL];
+	[item setImage:[NSImage imageWithSystemSymbolName:@"folder" accessibilityDescription:@"Group"]];
+	[item setSubmenu:submenu];
+	[item setTag:kInstanceGroupMenuItemTag];
+	return item;
+}
+
+// Every instance item, at the top level or inside a group.
+- (NSArray *)allInstanceMenuItems
+{
+	NSMutableArray *result = [NSMutableArray array];
+	for (NSMenuItem *item in [_statusMenu itemArray]) {
+		if ([item tag] == kInstanceMenuItemTag) {
+			[result addObject:item];
+		}
+		else if ([item tag] == kInstanceGroupMenuItemTag) {
+			for (NSMenuItem *groupedItem in [[item submenu] itemArray]) {
+				if ([groupedItem tag] == kInstanceMenuItemTag)
+					[result addObject:groupedItem];
+			}
+		}
+	}
+	return result;
 }
 
 #pragma mark - Menu item helpers
@@ -1075,6 +1350,8 @@ static NSImage *_brImage;
 	DataSource *dataSource = [DataSource sharedDataSource];
     BOOL result = [dataSource refreshCurrentRegionIgnoringAge:NO];
     [dataSource refreshAllRegionsIgnoringAge:NO];
+    if ([[NSUserDefaults standardUserDefaults] groupingMode] == kPreferencesGroupingVPC)
+        [dataSource refreshVpcsIgnoringAge:NO];   // at most every few minutes
     
     return result;
 }
@@ -1084,6 +1361,8 @@ static NSImage *_brImage;
 	DataSource *dataSource = [DataSource sharedDataSource];
 	BOOL result = [dataSource refreshCurrentRegionIgnoringAge:YES];
     [dataSource refreshAllRegionsIgnoringAge:YES];
+    if ([[NSUserDefaults standardUserDefaults] groupingMode] == kPreferencesGroupingVPC)
+        [dataSource refreshVpcsIgnoringAge:NO];   // VPC names rarely change
     
     return result;
 }
@@ -1133,13 +1412,11 @@ static NSImage *_brImage;
 		// refresh all instances only if "Refresh on menu open" is checked
 		if ([[NSUserDefaults standardUserDefaults] isRefreshOnMenuOpen]) {
 			if ([self refresh]) {
-                // data source did start refresh
-                for (NSMenuItem *menuItem in [_statusMenu itemArray]) {
-                    // instanse items have negative tag
-                    if ([menuItem tag] < 0) {
-                        [menuItem setImage:[NSImage imageNamed:@"InstanceStateRefreshing"]];
-                        [menuItem setSubmenu:nil];
-                    }
+                // data source did start refresh: show instances (also those inside
+                // groups) as refreshing until the new list arrives
+                for (NSMenuItem *menuItem in [self allInstanceMenuItems]) {
+                    [menuItem setImage:[NSImage imageNamed:@"InstanceStateRefreshing"]];
+                    [menuItem setSubmenu:nil];
                 }
             }
 		}
@@ -1339,8 +1616,11 @@ static NSImage *_brImage;
 {
 	NSMenuItem *menuItem = (NSMenuItem *)sender;
 	NSPasteboard *pasteBoard = [NSPasteboard generalPasteboard];
+	NSString *value = [menuItem representedObject];
+	if (![value isKindOfClass:[NSString class]])
+		return;   // nothing to copy
     [pasteBoard clearContents];
-	[pasteBoard setString:[menuItem representedObject] forType:NSPasteboardTypeString];
+	[pasteBoard setString:value forType:NSPasteboardTypeString];
 }
 
 // Public DNS name (if preferred), else public IP, else private IP for VPC-only instances.
