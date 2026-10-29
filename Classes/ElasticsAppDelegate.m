@@ -879,7 +879,7 @@ static NSImage *_brImage;
 	NSMenuItem *item = [[[NSMenuItem alloc] initWithTitle:title action:NULL keyEquivalent:@""] autorelease];
 	NSString *displayTitle = title;
 	if (@available(macOS 14.0, *))
-		[item setBadge:[NSMenuItemBadge badgeWithCount:[instances count]]];
+		[item setBadge:[[[NSMenuItemBadge alloc] initWithCount:[instances count]] autorelease]];
 	else
 		displayTitle = [NSString stringWithFormat:@"%@ (%lu)", title, (unsigned long)[instances count]];
 	[item setAttributedTitle:[[[NSAttributedString alloc] initWithString:displayTitle
