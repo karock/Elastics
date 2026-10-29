@@ -15,7 +15,24 @@ Changes from Elastics 1.6:
 - Instance details: lifecycle, state reason, private IP, storage (EBS volumes and
   instance store)
 - Instance search at the top of the menu (focused when the menu opens)
+- Optional grouping of the instance list into submenus, and a Tags submenu per instance
 - Dark Mode fixes and modern menu bar icon
+
+## Grouping instances
+
+Long instance lists can be grouped into submenus. In Preferences > General, choose
+**Group instances**:
+
+| Mode | Groups by |
+|---|---|
+| By VPC | The VPC's Name tag ("Default VPC" if unnamed; the VPC ID until names load) |
+| By name prefixes | The longest prefix from your comma-separated list that the name starts with (ignoring case), e.g. `Prod, Dev, Staging` |
+| By automatic name prefix | The text before the first `-`, `_`, `.` or space, when at least two instances share it (`prod-web-1`, `prod-db-1` -> `prod`) |
+| By tag | The value of a tag you name, e.g. `Environment`, or `aws:autoscaling:groupName` for Auto Scaling groups |
+
+Instances that don't fit a group stay in the main list below the groups. Separately,
+**Put stopped instances in a "Stopped" submenu** collects stopped instances in one
+group at the bottom. Searching always shows a flat list of all matches.
 
 ## AWS permissions
 
@@ -33,6 +50,7 @@ permissions rather than keys for a broadly privileged user:
         "ec2:DescribeInstances",
         "ec2:DescribeVolumes",
         "ec2:DescribeInstanceTypes",
+        "ec2:DescribeVpcs",
         "cloudwatch:GetMetricStatistics"
       ],
       "Resource": "*"
@@ -47,6 +65,7 @@ permissions rather than keys for a broadly privileged user:
 | `cloudwatch:GetMetricStatistics` | CPU chart and min/max/average |
 | `ec2:DescribeVolumes` | EBS volume size and type in Storage (without it, volume IDs are shown) |
 | `ec2:DescribeInstanceTypes` | Instance store disks in Storage (without it, they're not shown) |
+| `ec2:DescribeVpcs` | VPC names when grouping by VPC (without it, groups show VPC IDs) |
 
 These Describe/Get actions don't support resource-level restrictions, so
 `"Resource": "*"` is required. To limit Elastics to particular regions, add a
