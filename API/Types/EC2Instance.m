@@ -27,6 +27,7 @@
 @property (nonatomic, retain) NSArray *tagSet;
 @property (nonatomic, retain) NSArray *instanceGroupSet;
 @property (nonatomic, retain) NSString *instanceLifecycle;
+@property (nonatomic, retain) NSString *vpcId;
 @property (nonatomic, retain) NSString *rootDeviceType;
 @property (nonatomic, retain) NSString *rootDeviceName;
 @property (nonatomic, retain) NSArray *blockDeviceMapping;
@@ -50,6 +51,7 @@
 @synthesize tagSet = _tagSet;
 @synthesize instanceGroupSet = _instanceGroupSet;
 @synthesize instanceLifecycle = _instanceLifecycle;
+@synthesize vpcId = _vpcId;
 @synthesize rootDeviceType = _rootDeviceType;
 @synthesize rootDeviceName = _rootDeviceName;
 @synthesize blockDeviceMapping = _blockDeviceMapping;
@@ -92,6 +94,8 @@
 				self.tagSet = [self parseElement:element asArrayOf:[EC2Tag class]];
 			else if ([elementName isEqualToString:@"groupSet"])
 				self.instanceGroupSet = [self parseElement:element asArrayOf:[EC2Group class]];
+			else if ([elementName isEqualToString:@"vpcId"])
+				self.vpcId = [TBXML textForElement:element];
 			else if ([elementName isEqualToString:@"rootDeviceType"])
 				self.rootDeviceType = [TBXML textForElement:element];
 			else if ([elementName isEqualToString:@"rootDeviceName"])
@@ -131,6 +135,7 @@
 	TBRelease(_tagSet);
 	TBRelease(_instanceGroupSet);
 	TBRelease(_instanceLifecycle);
+	TBRelease(_vpcId);
 	TBRelease(_rootDeviceType);
 	TBRelease(_rootDeviceName);
 	TBRelease(_blockDeviceMapping);
@@ -157,6 +162,32 @@
 	}
 
 	return [names count] ? [names componentsJoinedByString:@", "] : nil;
+}
+
+- (NSString *)tagValueForKey:(NSString *)key
+{
+	for (EC2Tag *tag in _tagSet) {
+		if ([tag.key caseInsensitiveCompare:key] == NSOrderedSame)
+			return tag.value;
+	}
+	return nil;
+}
+
+- (NSArray *)sortedTags
+{
+	return [_tagSet sortedArrayUsingComparator:^NSComparisonResult(id a, id b) {
+		BOOL aIsAWS = [[[a key] lowercaseString] hasPrefix:@"aws:"];
+		BOOL bIsAWS = [[[b key] lowercaseString] hasPrefix:@"aws:"];
+		if (aIsAWS != bIsAWS)
+			return aIsAWS ? NSOrderedDescending : NSOrderedAscending;
+		return [[a key] localizedCaseInsensitiveCompare:[b key]];
+	}];
+}
+
+- (BOOL)isStopped
+{
+	NSInteger code = _instanceState.code & 0xFF;
+	return code == EC2_INSTANCE_STATE_STOPPED || code == EC2_INSTANCE_STATE_STOPPING;
 }
 
 - (NSString *)lifecycleTitle

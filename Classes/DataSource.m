@@ -13,6 +13,7 @@
 const NSTimeInterval kMaxRefreshAge                 = 5.;
 const NSTimeInterval kMaxStatisticsAge              = 60.;
 const NSTimeInterval kMaxOtherRegionsRefreshAge     = 35.;
+const NSTimeInterval kMaxVpcsRefreshAge             = 300.;
 
 NSString *const kDataSourceRefreshCompletedNotification	= @"kDataSourceRefreshCompletedNotification";
 
@@ -21,6 +22,7 @@ NSString *const kDataSourceErrorInfoKey         = @"kDataSourceErrorInfoKey";
 
 NSString *const kDataSourceCurrentRegionRefreshType = @"kDataSourceCurrentRegionRefreshType";
 NSString *const kDataSourceAllRegionsRefreshType    = @"kDataSourceAllRegionsRefreshType";
+NSString *const kDataSourceVpcsRefreshType          = @"kDataSourceVpcsRefreshType";
 
 static NSString *const kRefreshInfoStartedAtKey     = @"kRefreshInfoStartedAtKey";
 static NSString *const kRefreshInfoFinishedAtKey    = @"kRefreshInfoFinishedAtKey";
@@ -50,6 +52,7 @@ TB_SINGLETON(DataSource);
 	TBRelease(_instanceMonitoringRequests);
 	TBRelease(_instanceVolumeRequests);
 	TBRelease(_instanceTypeRequests);
+	TBRelease(_vpcRequests);
 	TBRelease(_instanceMonitoringMetrics);
 
 	[super dealloc];
@@ -88,6 +91,7 @@ TB_SINGLETON(DataSource);
 	TBRelease(_instanceMonitoringRequests);
 	TBRelease(_instanceVolumeRequests);
 	TBRelease(_instanceTypeRequests);
+	TBRelease(_vpcRequests);
 	TBRelease(_instanceMonitoringMetrics);
 
     _instanceMonitoringMetrics = [[NSSet alloc] initWithObjects:kAWSCPUUtilizationMetric, nil];
@@ -96,6 +100,7 @@ TB_SINGLETON(DataSource);
     _instanceMonitoringRequests = [[NSMutableDictionary alloc] init];
     _instanceVolumeRequests = [[NSMutableDictionary alloc] init];
     _instanceTypeRequests = [[NSMutableDictionary alloc] init];
+    _vpcRequests = [[NSMutableDictionary alloc] init];
 }
 
 - (BOOL)refreshCurrentRegionIgnoringAge:(BOOL)ignoreAge
@@ -189,6 +194,46 @@ TB_SINGLETON(DataSource);
         
         return YES;
     }
+}
+
+// VPC names for grouping by VPC. A separate refresh type, so that a failure here
+// (e.g. no ec2:DescribeVpcs permission) never turns the instance list into an error.
+- (BOOL)refreshVpcsIgnoringAge:(BOOL)ignoreAge
+{
+	@synchronized(self) {
+		if ([_runningRefreshes objectForKey:kDataSourceVpcsRefreshType])
+			return NO;
+
+		NSString *currentRegion = [[NSUserDefaults standardUserDefaults] awsRegion];
+		EC2DescribeVpcsRequest *vpcRequest = [_vpcRequests objectForKey:currentRegion];
+		if (!vpcRequest) {
+			vpcRequest = [[EC2DescribeVpcsRequest alloc] initWithOptions:nil delegate:self];
+			vpcRequest.region = currentRegion;
+			[_vpcRequests setObject:vpcRequest forKey:currentRegion];
+			[vpcRequest release];
+		}
+
+		if ([vpcRequest isRunning] || (!ignoreAge && [vpcRequest age] <= kMaxVpcsRefreshAge))
+			return NO;
+
+		NSMutableDictionary *refreshInfo = [NSMutableDictionary dictionary];
+		[refreshInfo setObject:kDataSourceVpcsRefreshType forKey:kDataSourceRefreshTypeInfoKey];
+		[refreshInfo setObject:[NSDate date] forKey:kRefreshInfoStartedAtKey];
+		[refreshInfo setObject:[NSMutableSet setWithObject:vpcRequest] forKey:kRefreshInfoRequestSetKey];
+
+		[_runningRefreshes setObject:refreshInfo forKey:kDataSourceVpcsRefreshType];
+		[vpcRequest start];
+
+		return YES;
+	}
+}
+
+- (EC2Vpc *)vpcWithId:(NSString *)vpcId
+{
+	if (![vpcId length])
+		return nil;
+	NSString *currentRegion = [[NSUserDefaults standardUserDefaults] awsRegion];
+	return [[_vpcRequests objectForKey:currentRegion] vpcWithId:vpcId];
 }
 
 - (BOOL)refreshInstance:(NSString *)instanceId ignoringAge:(BOOL)ignoreAge

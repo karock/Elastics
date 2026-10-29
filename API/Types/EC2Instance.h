@@ -34,6 +34,7 @@
 	NSString			*_rootDeviceType;
 	NSString			*_rootDeviceName;
 	NSArray				*_blockDeviceMapping;   // EC2BlockDevice
+	NSString			*_vpcId;
 	NSArray				*_instanceGroupSet;   // EC2Group, security groups of the instance itself
 }
 
@@ -49,6 +50,7 @@
 @property (nonatomic, retain, readonly) NSString *privateIpAddress;
 @property (nonatomic, retain, readonly) NSString *ipAddress;
 @property (nonatomic, retain, readonly) NSArray *tagSet;
+@property (nonatomic, retain, readonly) NSString *vpcId;                    // nil outside a VPC
 @property (nonatomic, retain, readonly) NSString *rootDeviceType;           // ebs or instance-store
 @property (nonatomic, retain, readonly) NSString *rootDeviceName;           // e.g. /dev/xvda
 @property (nonatomic, retain, readonly) NSArray *blockDeviceMapping;        // EC2BlockDevice
@@ -57,6 +59,9 @@
 @property (nonatomic, retain, readonly) NSString *stateTransitionReason;  // reason, e.g. "User initiated (2026-10-21 10:00:00 GMT)"
 
 // Display helpers
+- (NSString *)tagValueForKey:(NSString *)key;   // value of the tag with this key (case-insensitive), or nil
+- (NSArray *)sortedTags;                        // EC2Tag, sorted by key, AWS-managed "aws:" tags last
+- (BOOL)isStopped;                              // stopped or stopping
 - (NSString *)lifecycleTitle;     // "On-Demand", "Spot", ...
 - (NSString *)stateReasonTitle;   // readable reason for the last state change, or nil
 

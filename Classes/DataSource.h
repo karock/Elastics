@@ -11,6 +11,7 @@
 #import "EC2DescribeVolumesRequest.h"
 #import "EC2Volume.h"
 #import "EC2DescribeInstanceTypesRequest.h"
+#import "EC2DescribeVpcsRequest.h"
 #import "EC2Instance.h"
 #import "MonitoringGetMetricStatisticsRequest.h"
 #import "MonitoringDatapoint.h"
@@ -23,6 +24,7 @@ extern NSString *const kDataSourceErrorInfoKey;
 
 extern NSString *const kDataSourceCurrentRegionRefreshType;
 extern NSString *const kDataSourceAllRegionsRefreshType;
+extern NSString *const kDataSourceVpcsRefreshType;
 
 @interface DataSource : NSObject <AWSRequestDelegate> {
 @private
@@ -31,6 +33,7 @@ extern NSString *const kDataSourceAllRegionsRefreshType;
 	NSMutableDictionary				*_instanceMonitoringRequests;       // instanceID -> MonitoringGetMetricStatisticsRequest
 	NSMutableDictionary				*_instanceVolumeRequests;           // instanceID -> EC2DescribeVolumesRequest
 	NSMutableDictionary				*_instanceTypeRequests;             // instance type -> EC2DescribeInstanceTypesRequest
+	NSMutableDictionary				*_vpcRequests;                      // region -> EC2DescribeVpcsRequest
 	NSSet							*_instanceMonitoringMetrics;
 }
 
@@ -46,6 +49,7 @@ extern NSString *const kDataSourceAllRegionsRefreshType;
 
 - (BOOL)refreshCurrentRegionIgnoringAge:(BOOL)ignoreAge;                    // begin refresh all instances in current region
 - (BOOL)refreshAllRegionsIgnoringAge:(BOOL)ignoreAge;                       // begin refresh all instances in all regions
+- (BOOL)refreshVpcsIgnoringAge:(BOOL)ignoreAge;                             // begin refresh of VPC names in current region
 - (BOOL)refreshInstance:(NSString *)instanceId ignoringAge:(BOOL)ignoreAge; // begin refresh instance info and monitoring stats for selected instance in current region
 
 - (NSArray *)instances;								// all instances (array of EC2Instance), for current region
@@ -59,6 +63,7 @@ extern NSString *const kDataSourceAllRegionsRefreshType;
 
 //- (NSArray *)statisticsForMetric:(NSString *)metric;										// composite statistics for metric (array of MonitoringDatapoint)
 - (NSDictionary *)volumesForInstance:(NSString *)instanceId;	// volume ID -> EC2Volume for the instance's attached volumes; empty until loaded or if DescribeVolumes is not permitted
+- (EC2Vpc *)vpcWithId:(NSString *)vpcId;	// VPC in current region; nil until loaded or if DescribeVpcs is not permitted
 - (EC2InstanceTypeInfo *)instanceTypeInfoForInstanceType:(NSString *)instanceType;	// instance store details; nil until loaded or if DescribeInstanceTypes is not permitted
 - (NSArray *)statisticsForMetric:(NSString *)metric forInstance:(NSString *)instanceId;		// instance statistics for metric (array of MonitoringDatapoint)
 
