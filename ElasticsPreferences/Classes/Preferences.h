@@ -63,6 +63,7 @@ enum {
 @property (nonatomic, assign) NSString *groupingNamePrefixes;              // comma-separated, e.g. "Prod, Dev"
 @property (nonatomic, assign) NSString *groupingTagKey;                    // e.g. "Environment"
 @property (nonatomic, assign, getter=isGroupStoppedInstances) BOOL groupStoppedInstances;
+@property (nonatomic, assign, getter=isGroupTerminatedInstances) BOOL groupTerminatedInstances;
 
 @property (nonatomic, assign) NSString *sshPrivateKeyFile;
 @property (nonatomic, assign) NSString *sshUserName;

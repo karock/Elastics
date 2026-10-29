@@ -190,6 +190,12 @@
 	return code == EC2_INSTANCE_STATE_STOPPED || code == EC2_INSTANCE_STATE_STOPPING;
 }
 
+- (BOOL)isTerminated
+{
+	NSInteger code = _instanceState.code & 0xFF;
+	return code == EC2_INSTANCE_STATE_TERMINATED || code == EC2_INSTANCE_STATE_SHUTTING_DOWN;
+}
+
 - (NSString *)lifecycleTitle
 {
 	if ([_instanceLifecycle length] == 0)

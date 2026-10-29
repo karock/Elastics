@@ -595,7 +595,7 @@ static NSTextField *AppDelegateLabel(NSString *text, NSRect frame, BOOL small)
 // are saved and announced to Elastics like every other preference.
 - (void)buildGroupingControls
 {
-    const CGFloat extraHeight = 130.f;
+    const CGFloat extraHeight = 150.f;
     const CGFloat labelX = 17.f, labelWidth = 120.f, controlX = 141.f, controlWidth = 327.f;
 
     // make room at the bottom: grow the pane, keep existing controls where they were
@@ -613,8 +613,8 @@ static NSTextField *AppDelegateLabel(NSString *text, NSRect frame, BOOL small)
                                                              forKey:NSContinuouslyUpdatesValueBindingOption];
 
     // mode
-    [_generalPane addSubview:AppDelegateLabel(@"Group instances:", NSMakeRect(labelX, 108.f, labelWidth, 17.f), NO)];
-    _groupingPopUp = [[[NSPopUpButton alloc] initWithFrame:NSMakeRect(controlX - 3.f, 102.f, 220.f, 26.f) pullsDown:NO] autorelease];
+    [_generalPane addSubview:AppDelegateLabel(@"Group instances:", NSMakeRect(labelX, 128.f, labelWidth, 17.f), NO)];
+    _groupingPopUp = [[[NSPopUpButton alloc] initWithFrame:NSMakeRect(controlX - 3.f, 122.f, 220.f, 26.f) pullsDown:NO] autorelease];
     NSArray *titles = [NSArray arrayWithObjects:@"Don't group", @"By VPC", @"By name prefixes", @"By automatic name prefix", @"By tag", nil];
     NSInteger tags[] = { kPreferencesGroupingNone, kPreferencesGroupingVPC, kPreferencesGroupingNamePrefixes,
                          kPreferencesGroupingAutomaticNamePrefix, kPreferencesGroupingTag };
@@ -628,28 +628,34 @@ static NSTextField *AppDelegateLabel(NSString *text, NSRect frame, BOOL small)
     [_generalPane addSubview:_groupingPopUp];
 
     // prefixes / tag key (one shown at a time)
-    _groupingFieldLabel = AppDelegateLabel(@"", NSMakeRect(labelX, 77.f, labelWidth, 17.f), NO);
+    _groupingFieldLabel = AppDelegateLabel(@"", NSMakeRect(labelX, 97.f, labelWidth, 17.f), NO);
     [_generalPane addSubview:_groupingFieldLabel];
 
-    _groupingPrefixesField = [[[NSTextField alloc] initWithFrame:NSMakeRect(controlX, 74.f, controlWidth, 22.f)] autorelease];
+    _groupingPrefixesField = [[[NSTextField alloc] initWithFrame:NSMakeRect(controlX, 94.f, controlWidth, 22.f)] autorelease];
     [[_groupingPrefixesField cell] setPlaceholderString:@"Prod, Dev, Staging"];
     [_groupingPrefixesField bind:NSValueBinding toObject:defaultsController withKeyPath:@"values.groupingNamePrefixes" options:continuously];
     [_generalPane addSubview:_groupingPrefixesField];
 
-    _groupingTagKeyField = [[[NSTextField alloc] initWithFrame:NSMakeRect(controlX, 74.f, 220.f, 22.f)] autorelease];
+    _groupingTagKeyField = [[[NSTextField alloc] initWithFrame:NSMakeRect(controlX, 94.f, 220.f, 22.f)] autorelease];
     [[_groupingTagKeyField cell] setPlaceholderString:@"Environment"];
     [_groupingTagKeyField bind:NSValueBinding toObject:defaultsController withKeyPath:@"values.groupingTagKey" options:continuously];
     [_generalPane addSubview:_groupingTagKeyField];
 
     // explanation of the selected mode
-    _groupingHintLabel = AppDelegateLabel(@"", NSMakeRect(controlX, 30.f, controlWidth, 42.f), YES);
+    _groupingHintLabel = AppDelegateLabel(@"", NSMakeRect(controlX, 50.f, controlWidth, 42.f), YES);
     [_generalPane addSubview:_groupingHintLabel];
 
     // stopped instances
     NSButton *stoppedCheckbox = [NSButton checkboxWithTitle:@"Put stopped instances in a \u201CStopped\u201D submenu" target:nil action:NULL];
-    [stoppedCheckbox setFrame:NSMakeRect(controlX, 8.f, controlWidth, 18.f)];
+    [stoppedCheckbox setFrame:NSMakeRect(controlX, 28.f, controlWidth, 18.f)];
     [stoppedCheckbox bind:NSValueBinding toObject:defaultsController withKeyPath:@"values.groupStoppedInstances" options:nil];
     [_generalPane addSubview:stoppedCheckbox];
+
+    // terminated instances
+    NSButton *terminatedCheckbox = [NSButton checkboxWithTitle:@"Put terminated instances in a \u201CTerminated\u201D submenu" target:nil action:NULL];
+    [terminatedCheckbox setFrame:NSMakeRect(controlX, 8.f, controlWidth, 18.f)];
+    [terminatedCheckbox bind:NSValueBinding toObject:defaultsController withKeyPath:@"values.groupTerminatedInstances" options:nil];
+    [_generalPane addSubview:terminatedCheckbox];
 
     [self updateGroupingControls];
 }

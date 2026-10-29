@@ -55,6 +55,7 @@ static NSString *const kPreferencesGroupingModeKey                          = @"
 static NSString *const kPreferencesGroupingNamePrefixesKey                  = @"groupingNamePrefixes";
 static NSString *const kPreferencesGroupingTagKeyKey                        = @"groupingTagKey";
 static NSString *const kPreferencesGroupStoppedInstancesKey                 = @"groupStoppedInstances";
+static NSString *const kPreferencesGroupTerminatedInstancesKey              = @"groupTerminatedInstances";
 static NSString *const kPreferencesSshPrivateKeyFileKey                     = @"sshPrivateKeyFile";
 static NSString *const kPreferencesSshUserNameKey                           = @"sshUserName";
 static NSString *const kPreferencesSshPortKey                               = @"sshPort";
@@ -124,6 +125,7 @@ static void PreferencesImportLegacyDomain(NSString *legacyDomain, NSString *doma
                       [NSNumber numberWithBool:YES], kPreferencesFirstLaunchKey,
                       [NSNumber numberWithInteger:kPreferencesGroupingNone], kPreferencesGroupingModeKey,
                       [NSNumber numberWithBool:NO], kPreferencesGroupStoppedInstancesKey,
+                      [NSNumber numberWithBool:NO], kPreferencesGroupTerminatedInstancesKey,
                       nil];
 
         // the original eight regions default to active (as in Elastics 1.x), newer ones to inactive
@@ -298,6 +300,16 @@ static void PreferencesImportLegacyDomain(NSString *legacyDomain, NSString *doma
 - (void)setGroupStoppedInstances:(BOOL)value
 {
 	[self setBool:value forKey:kPreferencesGroupStoppedInstancesKey];
+}
+
+- (BOOL)isGroupTerminatedInstances
+{
+	return [self boolForKey:kPreferencesGroupTerminatedInstancesKey];
+}
+
+- (void)setGroupTerminatedInstances:(BOOL)value
+{
+	[self setBool:value forKey:kPreferencesGroupTerminatedInstancesKey];
 }
 
 - (NSString *)sshPrivateKeyFile

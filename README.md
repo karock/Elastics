@@ -32,7 +32,9 @@ Long instance lists can be grouped into submenus. In Preferences > General, choo
 
 Instances that don't fit a group stay in the main list below the groups. Separately,
 **Put stopped instances in a "Stopped" submenu** collects stopped instances in one
-group at the bottom. Searching always shows a flat list of all matches.
+group at the bottom, and **Put terminated instances in a "Terminated" submenu** does
+the same for terminated ones (when they aren't hidden altogether). Searching always
+shows a flat list of all matches.
 
 ## AWS permissions
 

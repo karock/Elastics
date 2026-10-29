@@ -62,6 +62,7 @@
 - (NSString *)tagValueForKey:(NSString *)key;   // value of the tag with this key (case-insensitive), or nil
 - (NSArray *)sortedTags;                        // EC2Tag, sorted by key, AWS-managed "aws:" tags last
 - (BOOL)isStopped;                              // stopped or stopping
+- (BOOL)isTerminated;                           // terminated or shutting down
 - (NSString *)lifecycleTitle;     // "On-Demand", "Spot", ...
 - (NSString *)stateReasonTitle;   // readable reason for the last state change, or nil
 

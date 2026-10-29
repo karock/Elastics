@@ -682,16 +682,21 @@ static NSImage *_brImage;
 	[self filterInstanceItems];
 }
 
-// Groups (sorted by title), then ungrouped instances, then "Stopped" if enabled.
+// Groups (sorted by title), then ungrouped instances, then "Stopped" and
+// "Terminated" if enabled.
 // With no grouping and no Stopped group this is the plain list.
 - (NSArray *)groupedInstanceItems
 {
 	BOOL groupStopped = [[NSUserDefaults standardUserDefaults] isGroupStoppedInstances];
+	BOOL groupTerminated = [[NSUserDefaults standardUserDefaults] isGroupTerminatedInstances];
 
 	NSMutableArray *stopped = [NSMutableArray array];
+	NSMutableArray *terminated = [NSMutableArray array];
 	NSMutableArray *candidates = [NSMutableArray array];
 	for (EC2Instance *instance in _displayedInstances) {
-		if (groupStopped && [instance isStopped])
+		if (groupTerminated && [instance isTerminated])
+			[terminated addObject:instance];
+		else if (groupStopped && [instance isStopped])
 			[stopped addObject:instance];
 		else
 			[candidates addObject:instance];
@@ -725,6 +730,8 @@ static NSImage *_brImage;
 
 	if ([stopped count])
 		[items addObject:[self groupItemWithTitle:@"Stopped" instances:stopped]];
+	if ([terminated count])
+		[items addObject:[self groupItemWithTitle:@"Terminated" instances:terminated]];
 
 	return items;
 }
