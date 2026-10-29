@@ -35,6 +35,23 @@ static NSString *ElasticsShellQuote(NSString *value)
 	return [NSString stringWithFormat:@"'%@'", [value stringByReplacingOccurrencesOfString:@"'" withString:@"'\\''"]];
 }
 
+// EC2 console page in the given region; fragment is e.g. "InstanceDetails:instanceId=i-123".
+// AWS GovCloud (US) has its own console domain.
+static NSURL *ElasticsEC2ConsoleURL(NSString *region, NSString *fragment)
+{
+	NSString *base = [region hasPrefix:@"us-gov-"] ? @"https://console.amazonaws-us-gov.com" : @"https://console.aws.amazon.com";
+	return [NSURL URLWithString:[NSString stringWithFormat:@"%@/ec2/home?region=%@#%@", base, region, fragment]];
+}
+
+// Encode an ID or name for use as a value in a console URL fragment
+static NSString *ElasticsConsoleFragmentValue(NSString *value)
+{
+	NSCharacterSet *allowed = [NSCharacterSet characterSetWithCharactersInString:
+							   @"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_."];
+	NSString *encoded = [value stringByAddingPercentEncodingWithAllowedCharacters:allowed];
+	return encoded ? encoded : @"";
+}
+
 // Escape a value for use inside an AppleScript "..." string literal
 static NSString *ElasticsAppleScriptEscape(NSString *value)
 {
@@ -75,6 +92,9 @@ static NSString *ElasticsAppleScriptEscape(NSString *value)
 - (NSMenuItem *)infoItemWithLabel:(NSString *)label info:(NSString *)info action:(SEL)action tooltip:(NSString *)tooltip
 					   tableWidth:(CGFloat)tableWidth labelWidth:(CGFloat)labelWidth;
 - (NSMenuItem *)tagsItemForInstance:(EC2Instance *)instance;
+- (NSArray *)consoleLinkItemsWithLabel:(NSString *)label info:(NSString *)info tooltip:(NSString *)tooltip
+							consoleURL:(NSURL *)url copyValue:(NSString *)copyValue;
+- (void)openConsoleAction:(id)sender;
 - (NSMenuItem *)actionItemWithLabel:(NSString *)label info:(NSString *)info action:(SEL)action;
 - (NSMenuItem *)dummyItem;
 
@@ -1208,15 +1228,33 @@ static NSImage *_brImage;
 	[menu removeAllItems];
 
 	[menu addItem:[self titleItemWithTitle:@"INSTANCE DETAILS"]];
-	[menu addItem:[self infoItemWithLabel:@"Instance ID" info:instance.instanceId action:@selector(copyToPasteboardAction:) tooltip:@"Copy Instance ID"]];
-	[menu addItem:[self infoItemWithLabel:@"Image ID" info:instance.imageId action:@selector(copyToPasteboardAction:) tooltip:@"Copy Image ID"]];
+	NSString *awsRegion = [[NSUserDefaults standardUserDefaults] awsRegion];
+	for (NSMenuItem *item in [self consoleLinkItemsWithLabel:@"Instance ID"
+														info:instance.instanceId
+													 tooltip:@"Open instance in the AWS Console"
+												  consoleURL:ElasticsEC2ConsoleURL(awsRegion, [@"InstanceDetails:instanceId=" stringByAppendingString:ElasticsConsoleFragmentValue(instance.instanceId)])
+												   copyValue:instance.instanceId])
+		[menu addItem:item];
+	if ([instance.imageId length]) {
+		for (NSMenuItem *item in [self consoleLinkItemsWithLabel:@"Image ID"
+															info:instance.imageId
+														 tooltip:@"Open AMI in the AWS Console"
+													  consoleURL:ElasticsEC2ConsoleURL(awsRegion, [@"ImageDetails:imageId=" stringByAppendingString:ElasticsConsoleFragmentValue(instance.imageId)])
+													   copyValue:instance.imageId])
+			[menu addItem:item];
+	}
 	[menu addItem:[self infoItemWithLabel:@"Instance Type" info:instance.instanceType action:NULL tooltip:nil]];
 	[menu addItem:[self infoItemWithLabel:@"Lifecycle" info:[instance lifecycleTitle] action:NULL tooltip:nil]];
 	[menu addItem:[self infoItemWithLabel:@"Monitoring" info:instance.monitoring.monitoringType action:NULL tooltip:nil]];
 	[menu addItem:[self infoItemWithLabel:@"Launched At" info:[instance.launchTime localizedString] action:NULL tooltip:nil]];
 	[menu addItem:[self infoItemWithLabel:@"Availability Zone" info:instance.placement.availabilityZone action:NULL tooltip:nil]];
     if (instance.autoscalingGroupName)
-        [menu addItem:[self infoItemWithLabel:@"Autoscaling Group" info:instance.autoscalingGroupName action:NULL tooltip:nil]];
+        for (NSMenuItem *item in [self consoleLinkItemsWithLabel:@"Autoscaling Group"
+                                                            info:instance.autoscalingGroupName
+                                                         tooltip:@"Open Auto Scaling group in the AWS Console"
+                                                      consoleURL:ElasticsEC2ConsoleURL(awsRegion, [NSString stringWithFormat:@"AutoScalingGroupDetails:id=%@;view=details", ElasticsConsoleFragmentValue(instance.autoscalingGroupName)])
+                                                       copyValue:instance.autoscalingGroupName])
+            [menu addItem:item];
 	[menu addItem:[self infoItemWithLabel:@"State" info:instance.instanceState.name action:NULL tooltip:nil]];
 	NSString *stateReason = [instance stateReasonTitle];
 	if (stateReason)
@@ -1315,6 +1353,30 @@ static NSImage *_brImage;
 	return item;
 }
 
+// A detail row that opens a page in the AWS Console when clicked, plus its Option-key
+// alternate, which copies the value instead (shown while ⌥ is held, displaying the
+// value it copies). Returns both items, to be added to the menu in this order.
+- (NSArray *)consoleLinkItemsWithLabel:(NSString *)label info:(NSString *)info tooltip:(NSString *)tooltip
+							consoleURL:(NSURL *)url copyValue:(NSString *)copyValue
+{
+	NSMenuItem *openItem = [self infoItemWithLabel:label
+											  info:info
+											action:@selector(openConsoleAction:)
+										   tooltip:[NSString stringWithFormat:@"%@ (hold \u2325 to copy instead)", tooltip]];
+	[openItem setRepresentedObject:url];
+	[openItem setKeyEquivalentModifierMask:0];
+
+	NSMenuItem *copyItem = [self infoItemWithLabel:label
+											  info:copyValue
+											action:@selector(copyToPasteboardAction:)
+										   tooltip:[NSString stringWithFormat:@"Copy %@", copyValue]];
+	[copyItem setRepresentedObject:copyValue];
+	[copyItem setKeyEquivalentModifierMask:NSEventModifierFlagOption];
+	[copyItem setAlternate:YES];
+
+	return [NSArray arrayWithObjects:openItem, copyItem, nil];
+}
+
 // Storage rows: the root device type, then one row per attached EBS volume (root
 // first), labelled by device name, then the instance store disks of the instance type. Size and type come from DescribeVolumes when it
 // is permitted; otherwise the volume ID is shown. Clicking a volume copies its ID.
@@ -1368,16 +1430,16 @@ static NSImage *_brImage;
 		if ([device.status length] && ![device.status isEqualToString:@"attached"])
 			info = [NSString stringWithFormat:@"%@ (%@)", info, device.status];
 
-		NSString *tooltip = [NSString stringWithFormat:@"Copy Volume ID %@", device.volumeId];
+		NSString *tooltip = [NSString stringWithFormat:@"Open volume %@ in the AWS Console", device.volumeId];
 		if ([extras count])
 			tooltip = [tooltip stringByAppendingFormat:@"\n%@", [extras componentsJoinedByString:@", "]];
 
-		NSMenuItem *item = [self infoItemWithLabel:(device.deviceName ? device.deviceName : @"Volume")
-											  info:info
-											action:@selector(copyToPasteboardAction:)
-										   tooltip:tooltip];
-		[item setRepresentedObject:device.volumeId];   // copied by copyToPasteboardAction:
-		[items addObject:item];
+		NSString *awsRegion = [[NSUserDefaults standardUserDefaults] awsRegion];
+		[items addObjectsFromArray:[self consoleLinkItemsWithLabel:(device.deviceName ? device.deviceName : @"Volume")
+															  info:info
+														   tooltip:tooltip
+														consoleURL:ElasticsEC2ConsoleURL(awsRegion, [@"VolumeDetails:volumeId=" stringByAppendingString:ElasticsConsoleFragmentValue(device.volumeId)])
+														 copyValue:device.volumeId]];
 	}
 
 	// instance store (ephemeral) disks: not in the block device mapping, so they come
@@ -1992,6 +2054,13 @@ static NSImage *_brImage;
 	[copyright release];
 	
 	[_aboutPanel makeKeyAndOrderFront:self];
+}
+
+- (void)openConsoleAction:(id)sender
+{
+	id url = [(NSMenuItem *)sender representedObject];
+	if ([url isKindOfClass:[NSURL class]])
+		[[NSWorkspace sharedWorkspace] openURL:url];
 }
 
 - (void)openAWSManagementConsoleAction:(id)sender

@@ -16,6 +16,8 @@ Changes from Elastics 1.6:
   instance store)
 - Instance search at the top of the menu (focused when the menu opens)
 - Optional grouping of the instance list into submenus, and a Tags submenu per instance
+- Instance ID, AMI, Auto Scaling group and EBS volume rows open the AWS Console
+  (hold Option to copy the ID instead)
 - Dark Mode fixes and modern menu bar icon
 
 ## Grouping instances
