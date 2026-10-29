@@ -12,6 +12,15 @@ extern NSString *const kPreferencesDidChangeNotification;
 // Distributed notification sent when main application terminates
 extern NSString *const kPreferencesShouldTerminateNotification;
 
+// How instances are grouped into submenus
+enum {
+	kPreferencesGroupingNone,
+	kPreferencesGroupingVPC,
+	kPreferencesGroupingNamePrefixes,           // groupingNamePrefixes
+	kPreferencesGroupingAutomaticNamePrefix,    // text before the first - _ . or space
+	kPreferencesGroupingTag,                    // value of the tag groupingTagKey
+};
+
 // Terminal application types
 enum {
 	kPreferencesTerminalApplicationTerminal,
@@ -49,6 +58,11 @@ enum {
 @property (nonatomic, readonly) NSArray *activeAWSRegions;    // active regions as AWS region ids, display order
 - (BOOL)isAWSRegionActive:(NSString *)awsRegion;
 - (void)setAWSRegion:(NSString *)awsRegion active:(BOOL)active;
+
+@property (nonatomic, assign) NSInteger groupingMode;                      // from the enum above
+@property (nonatomic, assign) NSString *groupingNamePrefixes;              // comma-separated, e.g. "Prod, Dev"
+@property (nonatomic, assign) NSString *groupingTagKey;                    // e.g. "Environment"
+@property (nonatomic, assign, getter=isGroupStoppedInstances) BOOL groupStoppedInstances;
 
 @property (nonatomic, assign) NSString *sshPrivateKeyFile;
 @property (nonatomic, assign) NSString *sshUserName;

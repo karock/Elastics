@@ -51,6 +51,10 @@ static NSString *PreferencesRegionActiveKey(NSString *awsRegion)
     return legacyKey ? legacyKey : [@"regionActive-" stringByAppendingString:awsRegion];
 }
 
+static NSString *const kPreferencesGroupingModeKey                          = @"groupingMode";
+static NSString *const kPreferencesGroupingNamePrefixesKey                  = @"groupingNamePrefixes";
+static NSString *const kPreferencesGroupingTagKeyKey                        = @"groupingTagKey";
+static NSString *const kPreferencesGroupStoppedInstancesKey                 = @"groupStoppedInstances";
 static NSString *const kPreferencesSshPrivateKeyFileKey                     = @"sshPrivateKeyFile";
 static NSString *const kPreferencesSshUserNameKey                           = @"sshUserName";
 static NSString *const kPreferencesSshPortKey                               = @"sshPort";
@@ -118,6 +122,8 @@ static void PreferencesImportLegacyDomain(NSString *legacyDomain, NSString *doma
                       [NSNumber numberWithBool:NO], kPreferencesHideTerminatedInstancesKey,
                       [NSNumber numberWithBool:NO], kPreferencesUsingPublicDNSKey,
                       [NSNumber numberWithBool:YES], kPreferencesFirstLaunchKey,
+                      [NSNumber numberWithInteger:kPreferencesGroupingNone], kPreferencesGroupingModeKey,
+                      [NSNumber numberWithBool:NO], kPreferencesGroupStoppedInstancesKey,
                       nil];
 
         // the original eight regions default to active (as in Elastics 1.x), newer ones to inactive
@@ -252,6 +258,46 @@ static void PreferencesImportLegacyDomain(NSString *legacyDomain, NSString *doma
     }
 
     return result;
+}
+
+- (NSInteger)groupingMode
+{
+	return [self integerForKey:kPreferencesGroupingModeKey];
+}
+
+- (void)setGroupingMode:(NSInteger)value
+{
+	[self setInteger:value forKey:kPreferencesGroupingModeKey];
+}
+
+- (NSString *)groupingNamePrefixes
+{
+	return [self stringForKey:kPreferencesGroupingNamePrefixesKey];
+}
+
+- (void)setGroupingNamePrefixes:(NSString *)value
+{
+	[self setObject:value forKey:kPreferencesGroupingNamePrefixesKey];
+}
+
+- (NSString *)groupingTagKey
+{
+	return [self stringForKey:kPreferencesGroupingTagKeyKey];
+}
+
+- (void)setGroupingTagKey:(NSString *)value
+{
+	[self setObject:value forKey:kPreferencesGroupingTagKeyKey];
+}
+
+- (BOOL)isGroupStoppedInstances
+{
+	return [self boolForKey:kPreferencesGroupStoppedInstancesKey];
+}
+
+- (void)setGroupStoppedInstances:(BOOL)value
+{
+	[self setBool:value forKey:kPreferencesGroupStoppedInstancesKey];
 }
 
 - (NSString *)sshPrivateKeyFile

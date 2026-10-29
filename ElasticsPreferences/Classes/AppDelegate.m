@@ -39,6 +39,9 @@ static NSString *const kElasticsSendFeedbackURL = @"https://github.com/karock/El
 - (void)addContentSubview:(NSView *)view;
 - (void)preferencesShouldTerminate:(NSNotification *)notification;
 - (void)buildRegionsPane;
+- (void)buildGroupingControls;
+- (void)groupingModeAction:(id)sender;
+- (void)updateGroupingControls;
 - (void)updateRegionCheckboxes;
 - (void)regionCheckboxAction:(id)sender;
 
@@ -55,6 +58,12 @@ static NSString *const kElasticsSendFeedbackURL = @"https://github.com/karock/El
 
 @implementation AppDelegate {
     NSMutableArray *_regionCheckboxes;
+    // grouping controls in the General pane (owned by the pane)
+    NSPopUpButton *_groupingPopUp;
+    NSTextField *_groupingFieldLabel;
+    NSTextField *_groupingPrefixesField;
+    NSTextField *_groupingTagKeyField;
+    NSTextField *_groupingHintLabel;
 }
 
 @synthesize window = _window;
@@ -131,6 +140,7 @@ static NSString *const kElasticsSendFeedbackURL = @"https://github.com/karock/El
 	[_accountsTableView setTarget:self];
 	[_accountsTableView	setDoubleAction:@selector(editAccountAction:)];
 	[self buildRegionsPane];
+	[self buildGroupingControls];
 	[self showPreferencePane:kGeneralPaneIndex animated:NO];
 	
 	NSNotificationCenter *notificationCenter = [NSNotificationCenter defaultCenter];
@@ -559,6 +569,125 @@ enum {
 					  modalDelegate:self
 					 didEndSelector:@selector(removeAccountAlertDidEnd:returnCode:contextInfo:)
 						contextInfo:NULL];
+}
+
+#pragma mark - Grouping controls (General pane)
+
+static NSTextField *AppDelegateLabel(NSString *text, NSRect frame, BOOL small)
+{
+    NSTextField *label = [[[NSTextField alloc] initWithFrame:frame] autorelease];
+    [label setStringValue:text];
+    [label setBezeled:NO];
+    [label setDrawsBackground:NO];
+    [label setEditable:NO];
+    [label setSelectable:NO];
+    if (small) {
+        [label setFont:[NSFont systemFontOfSize:[NSFont smallSystemFontSize]]];
+        [label setTextColor:[NSColor secondaryLabelColor]];
+        [[label cell] setWraps:YES];
+        [[label cell] setLineBreakMode:NSLineBreakByWordWrapping];
+    }
+    return label;
+}
+
+// Adds "Group instances" settings below the nib's General pane controls, which are
+// moved up to make room. Values are bound to the shared user defaults, so changes
+// are saved and announced to Elastics like every other preference.
+- (void)buildGroupingControls
+{
+    const CGFloat extraHeight = 130.f;
+    const CGFloat labelX = 17.f, labelWidth = 120.f, controlX = 141.f, controlWidth = 327.f;
+
+    // make room at the bottom: grow the pane, keep existing controls where they were
+    [_generalPane setAutoresizesSubviews:NO];
+    NSSize paneSize = [_generalPane frame].size;
+    [_generalPane setFrameSize:NSMakeSize(paneSize.width, paneSize.height + extraHeight)];
+    for (NSView *view in [_generalPane subviews]) {
+        NSPoint origin = [view frame].origin;
+        [view setFrameOrigin:NSMakePoint(origin.x, origin.y + extraHeight)];
+    }
+    [_generalPane setAutoresizesSubviews:YES];
+
+    NSUserDefaultsController *defaultsController = [NSUserDefaultsController sharedUserDefaultsController];
+    NSDictionary *continuously = [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:YES]
+                                                             forKey:NSContinuouslyUpdatesValueBindingOption];
+
+    // mode
+    [_generalPane addSubview:AppDelegateLabel(@"Group instances:", NSMakeRect(labelX, 108.f, labelWidth, 17.f), NO)];
+    _groupingPopUp = [[[NSPopUpButton alloc] initWithFrame:NSMakeRect(controlX - 3.f, 102.f, 220.f, 26.f) pullsDown:NO] autorelease];
+    NSArray *titles = [NSArray arrayWithObjects:@"Don't group", @"By VPC", @"By name prefixes", @"By automatic name prefix", @"By tag", nil];
+    NSInteger tags[] = { kPreferencesGroupingNone, kPreferencesGroupingVPC, kPreferencesGroupingNamePrefixes,
+                         kPreferencesGroupingAutomaticNamePrefix, kPreferencesGroupingTag };
+    for (NSUInteger i = 0; i < [titles count]; i++) {
+        [_groupingPopUp addItemWithTitle:[titles objectAtIndex:i]];
+        [[_groupingPopUp lastItem] setTag:tags[i]];
+    }
+    [_groupingPopUp bind:NSSelectedTagBinding toObject:defaultsController withKeyPath:@"values.groupingMode" options:nil];
+    [_groupingPopUp setTarget:self];
+    [_groupingPopUp setAction:@selector(groupingModeAction:)];
+    [_generalPane addSubview:_groupingPopUp];
+
+    // prefixes / tag key (one shown at a time)
+    _groupingFieldLabel = AppDelegateLabel(@"", NSMakeRect(labelX, 77.f, labelWidth, 17.f), NO);
+    [_generalPane addSubview:_groupingFieldLabel];
+
+    _groupingPrefixesField = [[[NSTextField alloc] initWithFrame:NSMakeRect(controlX, 74.f, controlWidth, 22.f)] autorelease];
+    [[_groupingPrefixesField cell] setPlaceholderString:@"Prod, Dev, Staging"];
+    [_groupingPrefixesField bind:NSValueBinding toObject:defaultsController withKeyPath:@"values.groupingNamePrefixes" options:continuously];
+    [_generalPane addSubview:_groupingPrefixesField];
+
+    _groupingTagKeyField = [[[NSTextField alloc] initWithFrame:NSMakeRect(controlX, 74.f, 220.f, 22.f)] autorelease];
+    [[_groupingTagKeyField cell] setPlaceholderString:@"Environment"];
+    [_groupingTagKeyField bind:NSValueBinding toObject:defaultsController withKeyPath:@"values.groupingTagKey" options:continuously];
+    [_generalPane addSubview:_groupingTagKeyField];
+
+    // explanation of the selected mode
+    _groupingHintLabel = AppDelegateLabel(@"", NSMakeRect(controlX, 30.f, controlWidth, 42.f), YES);
+    [_generalPane addSubview:_groupingHintLabel];
+
+    // stopped instances
+    NSButton *stoppedCheckbox = [NSButton checkboxWithTitle:@"Put stopped instances in a \u201CStopped\u201D submenu" target:nil action:NULL];
+    [stoppedCheckbox setFrame:NSMakeRect(controlX, 8.f, controlWidth, 18.f)];
+    [stoppedCheckbox bind:NSValueBinding toObject:defaultsController withKeyPath:@"values.groupStoppedInstances" options:nil];
+    [_generalPane addSubview:stoppedCheckbox];
+
+    [self updateGroupingControls];
+}
+
+- (void)groupingModeAction:(id)sender
+{
+    [self updateGroupingControls];
+}
+
+- (void)updateGroupingControls
+{
+    NSInteger mode = [[_groupingPopUp selectedItem] tag];
+    NSString *hint = nil;
+
+    [_groupingPrefixesField setHidden:mode != kPreferencesGroupingNamePrefixes];
+    [_groupingTagKeyField setHidden:mode != kPreferencesGroupingTag];
+    [_groupingFieldLabel setHidden:mode != kPreferencesGroupingNamePrefixes && mode != kPreferencesGroupingTag];
+
+    switch (mode) {
+        case kPreferencesGroupingVPC:
+            hint = @"Groups instances by VPC, using each VPC\u2019s Name tag. Needs the ec2:DescribeVpcs permission; without it, VPC IDs are shown.";
+            break;
+        case kPreferencesGroupingNamePrefixes:
+            [_groupingFieldLabel setStringValue:@"Prefixes:"];
+            hint = @"Comma-separated. Each instance goes in the group of the longest prefix its name starts with (ignoring case).";
+            break;
+        case kPreferencesGroupingAutomaticNamePrefix:
+            hint = @"Groups names by the text before the first -, _, . or space, when two or more instances share it (e.g. prod-web-1 and prod-db-1).";
+            break;
+        case kPreferencesGroupingTag:
+            [_groupingFieldLabel setStringValue:@"Tag key:"];
+            hint = @"Groups instances by the value of this tag, e.g. Environment, or aws:autoscaling:groupName for Auto Scaling groups.";
+            break;
+        default:
+            hint = @"Instances are listed without grouping.";
+            break;
+    }
+    [_groupingHintLabel setStringValue:hint];
 }
 
 #pragma mark - Regions pane
