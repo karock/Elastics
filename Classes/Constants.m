@@ -10,7 +10,7 @@
 
 NSString *const kElasticsSecServiceName				= @"com.audiomack.Elastics";
 
-NSString *const kElasticsBundleShortVersionString	= @"1.7";
+NSString *const kElasticsBundleShortVersionString	= @"1.8";
 NSString *const kElasticsBundleIdentifier			= @"com.audiomack.Elastics";
 NSString *const kElasticsPreferencesBundleIdentifier	= @"com.audiomack.Elastics-Preferences";
 
