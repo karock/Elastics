@@ -11,6 +11,10 @@
 // Find project headers through explicit search paths instead of the deprecated
 // "traditional" header map that searches every user path.
 ALWAYS_SEARCH_USER_PATHS = NO
+
+// Calling a method the compiler can't find is a crash at run time
+// ("unrecognized selector"), so make it a build error instead of a warning.
+WARNING_CFLAGS = $(inherited) -Werror=objc-method-access
 USER_HEADER_SEARCH_PATHS = $(SRCROOT) $(SRCROOT)/Classes $(SRCROOT)/API/** $(SRCROOT)/TBXML $(SRCROOT)/ElasticsPreferences/Classes
 
 PRODUCT_VERSION = 1.5.2
