@@ -8,6 +8,8 @@
 
 #import "AWSRequest.h"
 #import "AWSSignatureV4.h"
+#import "Constants.h"
+#import "DemoData.h"
 
 // Defaults
 #define                AWSApiDefaultRegion		kAWSUSEastRegion
@@ -364,6 +366,25 @@ static NSURLSession *AWSRequestURLSession(void)
 
 	// prepare parameters
 	NSDictionary *requestParameters = [self parametersForAction:action method:AWSApiDefaultMethod parameters:parameters];
+
+	// demo mode: answer with made-up data after a short pause, like the network would
+	if (ElasticsIsDemoMode()) {
+		NSArray *modes = [NSArray arrayWithObjects:NSDefaultRunLoopMode, NSEventTrackingRunLoopMode, nil];
+		NSData *data = ElasticsDemoResponseData(self.service, action, self.region, requestParameters);
+		if (data) {
+			NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"https://%@/", self.host]];
+			NSHTTPURLResponse *response = [[[NSHTTPURLResponse alloc] initWithURL:url statusCode:200 HTTPVersion:@"HTTP/1.1" headerFields:nil] autorelease];
+			NSDictionary *result = [NSDictionary dictionaryWithObjectsAndKeys:response, @"response", data, @"data", nil];
+			[self performSelector:@selector(currentConnectionDidFinishWithResult:) withObject:result afterDelay:0.3 inModes:modes];
+		}
+		else {
+			NSError *error = [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorUnsupportedURL
+											 userInfo:[NSDictionary dictionaryWithObject:@"Not available in demo mode." forKey:NSLocalizedDescriptionKey]];
+			[self performSelector:@selector(currentConnectionDidFailWithError:) withObject:error afterDelay:0.3 inModes:modes];
+		}
+		[_delegate requestDidStartLoading:self];
+		return TRUE;
+	}
 
 	// prepare request URL; the query string must be byte-for-byte the one that gets signed
 	NSString *canonicalQuery = AWSSigV4CanonicalQueryString(requestParameters);

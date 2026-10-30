@@ -38,6 +38,21 @@ group at the bottom, and **Put terminated instances in a "Terminated" submenu** 
 the same for terminated ones (when they aren't hidden altogether). Searching always
 shows a flat list of all matches.
 
+## Demo mode (for screenshots)
+
+Demo mode shows a made-up fleet (about 20 instances across three regions, with
+VPCs, tags, Auto Scaling groups, Spot and Windows instances, volumes and CPU charts)
+and two example accounts, without contacting AWS or reading the keychain:
+
+```
+defaults write com.audiomack.Elastics-Preferences demoMode -bool YES   # on
+defaults delete com.audiomack.Elastics-Preferences demoMode            # off
+```
+
+Quit and reopen Elastics after switching. All names, IDs and addresses are
+invented (IPs from private and documentation ranges). Grouping and other settings
+you change while in demo mode are kept afterwards.
+
 ## AWS permissions
 
 Elastics only reads data. Give it its own IAM user (or role) with just these

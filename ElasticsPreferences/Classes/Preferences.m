@@ -231,6 +231,10 @@ static void PreferencesImportLegacyDomain(NSString *legacyDomain, NSString *doma
 
 - (BOOL)isAWSRegionActive:(NSString *)awsRegion
 {
+    // demo mode shows the regions that have demo instances, whatever is saved
+    if (ElasticsIsDemoMode())
+        return [[NSArray arrayWithObjects:@"us-east-1", @"us-west-2", @"eu-west-1", nil] containsObject:awsRegion];
+
     return [self boolForKey:PreferencesRegionActiveKey(awsRegion)];
 }
 

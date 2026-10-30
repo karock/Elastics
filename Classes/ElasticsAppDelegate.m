@@ -296,7 +296,7 @@ static NSImage *_brImage;
 	[statusButton setImage:_statusItemImage];
 	[statusButton setImagePosition:NSImageLeft];
 	[statusButton setFont:_statusItemFont];
-	[statusButton setToolTip:@"Elastics"];
+	[statusButton setToolTip:ElasticsIsDemoMode() ? @"Elastics (demo data)" : @"Elastics"];
 	[_statusItem setMenu:_statusMenu];
 
 	// set up pasteboard

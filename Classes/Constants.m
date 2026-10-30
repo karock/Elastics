@@ -17,3 +17,17 @@ NSString *const kElasticsPreferencesBundleIdentifier	= @"com.audiomack.Elastics-
 NSString *const kElasticsLegacySecServiceName				= @"com.tundrabot.Elastics";
 NSString *const kElasticsLegacyBundleIdentifier				= @"com.tundrabot.Elastics";
 NSString *const kElasticsLegacyPreferencesBundleIdentifier	= @"com.tundrabot.Elastics-Preferences";
+
+BOOL ElasticsIsDemoMode(void)
+{
+	static BOOL demoMode = NO;
+	static dispatch_once_t once;
+	dispatch_once(&once, ^{
+		Boolean exists = false;
+		Boolean value = CFPreferencesGetAppBooleanValue(CFSTR("demoMode"), (CFStringRef)kElasticsPreferencesBundleIdentifier, &exists);
+		demoMode = exists && value;
+		if (demoMode)
+			NSLog(@"Elastics: demo mode - showing made-up data, not your AWS account or keychain");
+	});
+	return demoMode;
+}

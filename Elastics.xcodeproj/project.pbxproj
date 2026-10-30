@@ -88,6 +88,7 @@
 		C3CE021912D76678006E87EF /* StatusItemAlert.png in Resources */ = {isa = PBXBuildFile; fileRef = C3CE021812D76678006E87EF /* StatusItemAlert.png */; };
 		C3D1D9C212DB2857005E576A /* InstanceStateRefreshing.png in Resources */ = {isa = PBXBuildFile; fileRef = C3D1D9C112DB2857005E576A /* InstanceStateRefreshing.png */; };
 		C3D1DB4112DB3471005E576A /* Constants.m in Sources */ = {isa = PBXBuildFile; fileRef = C3D1DB4012DB3471005E576A /* Constants.m */; };
+		B84725023B720B9320ACDA3F /* DemoData.m in Sources */ = {isa = PBXBuildFile; fileRef = D1BD1B2B60AD2B22DA3880BC /* DemoData.m */; };
 		C3D1DC6912DB574F005E576A /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = C3D1DC6812DB574F005E576A /* Credits.html */; };
 		C3DAED6E12C34DE200A0106D /* ChartView.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAED6D12C34DE200A0106D /* ChartView.m */; };
 		C3EA80EF13E1702A00FFFF7F /* EU.png in Resources */ = {isa = PBXBuildFile; fileRef = C3EA80EB13E1702A00FFFF7F /* EU.png */; };
@@ -261,6 +262,8 @@
 		C3D1D9C112DB2857005E576A /* InstanceStateRefreshing.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = InstanceStateRefreshing.png; sourceTree = "<group>"; };
 		C3D1DB3F12DB3471005E576A /* Constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Constants.h; sourceTree = "<group>"; };
 		C3D1DB4012DB3471005E576A /* Constants.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Constants.m; sourceTree = "<group>"; };
+		D1BD1B2B60AD2B22DA3880BC /* DemoData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DemoData.m; sourceTree = "<group>"; };
+		F29109EA6D6299BC76B7DF01 /* DemoData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DemoData.h; sourceTree = "<group>"; };
 		C3D1DC6812DB574F005E576A /* Credits.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Credits.html; sourceTree = "<group>"; };
 		C3DAED6C12C34DE200A0106D /* ChartView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ChartView.h; sourceTree = "<group>"; };
 		C3DAED6D12C34DE200A0106D /* ChartView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ChartView.m; sourceTree = "<group>"; };
@@ -296,6 +299,8 @@
 			children = (
 				C3D1DB3F12DB3471005E576A /* Constants.h */,
 				C3D1DB4012DB3471005E576A /* Constants.m */,
+				D1BD1B2B60AD2B22DA3880BC /* DemoData.m */,
+				F29109EA6D6299BC76B7DF01 /* DemoData.h */,
 				256AC3D80F4B6AC300CF3369 /* ElasticsAppDelegate.h */,
 				256AC3D90F4B6AC300CF3369 /* ElasticsAppDelegate.m */,
 				C32C2A0012C0CF2000F2C136 /* DataSource.h */,
@@ -710,6 +715,7 @@
 				C391BB0F12CBA0C600BD929A /* EC2ErrorResponse.m in Sources */,
 				C391BB1212CBA10A00BD929A /* MonitoringErrorResponse.m in Sources */,
 				C3D1DB4112DB3471005E576A /* Constants.m in Sources */,
+				B84725023B720B9320ACDA3F /* DemoData.m in Sources */,
 				C3BC74DD13E13BFE0061D438 /* Account.m in Sources */,
 				C3BC74DE13E13BFE0061D438 /* AccountsManager.m in Sources */,
 				C311E2E014B1B177000CB004 /* EC2Placement.m in Sources */,

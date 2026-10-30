@@ -142,6 +142,9 @@ sshPrivateKeyFile:(NSString *)sshPrivateKeyFile
 
 - (OSStatus)save
 {
+	if (ElasticsIsDemoMode())
+		return noErr;   // demo accounts live in memory only
+
 	if (![_accessKeyID length] || ![_secretAccessKey length]) {
 		// we cannot save keychain item with blank account or password
 		return errSecParam;
@@ -244,6 +247,9 @@ sshPrivateKeyFile:(NSString *)sshPrivateKeyFile
 
 - (OSStatus)remove
 {
+	if (ElasticsIsDemoMode())
+		return noErr;
+
 	// remove account keychain item
 	if (_itemRef) {
 		OSStatus status;

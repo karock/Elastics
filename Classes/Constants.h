@@ -19,3 +19,9 @@ extern NSString *const kElasticsPreferencesBundleIdentifier;
 extern NSString *const kElasticsLegacySecServiceName;
 extern NSString *const kElasticsLegacyBundleIdentifier;
 extern NSString *const kElasticsLegacyPreferencesBundleIdentifier;
+
+// Demo mode: made-up instances and accounts instead of AWS and the keychain, for
+// screenshots. Read once per launch from the Preferences domain, so both apps agree:
+//   defaults write com.audiomack.Elastics-Preferences demoMode -bool YES   (on)
+//   defaults delete com.audiomack.Elastics-Preferences demoMode            (off)
+BOOL ElasticsIsDemoMode(void);

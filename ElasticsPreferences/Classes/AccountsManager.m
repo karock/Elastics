@@ -108,6 +108,18 @@
 
 - (void)loadAccounts
 {
+    if (ElasticsIsDemoMode()) {
+        // made-up accounts, never saved (see Account -save); keys are AWS's documentation examples
+        [_accounts removeAllObjects];
+        [_accounts addObject:[Account accountWithID:0 name:@"Example Corp" accessKeyId:@"AKIAIOSFODNN7EXAMPLE"
+                                    secretAccessKey:@"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+                                  sshPrivateKeyFile:@"~/.ssh/example.pem" sshUserName:@"ec2-user" sshPort:0 sshOptions:nil]];
+        [_accounts addObject:[Account accountWithID:1 name:@"Example Corp (Sandbox)" accessKeyId:@"AKIAI44QH8DHBEXAMPLE"
+                                    secretAccessKey:@"je7MtGbClwBF/2Zp9Utk/h3yCo8nvbEXAMPLEKEY"
+                                  sshPrivateKeyFile:nil sshUserName:@"ubuntu" sshPort:0 sshOptions:nil]];
+        return;
+    }
+
     NSMutableArray *accounts = [self _accountsWithServiceName:kElasticsSecServiceName];
     if (accounts) {
         [_accounts removeAllObjects];
@@ -125,6 +137,9 @@ static NSString *const kAccountsImportedLegacyKey = @"importedLegacyAccounts";
 // The "done" flag lives in the Preferences domain so both apps share it.
 - (void)importLegacyAccountsIfNeeded
 {
+    if (ElasticsIsDemoMode())
+        return;   // never touch the keychain in demo mode
+
     CFStringRef domain = (CFStringRef)kElasticsPreferencesBundleIdentifier;
     Boolean flagExists = false;
     CFPreferencesGetAppBooleanValue((CFStringRef)kAccountsImportedLegacyKey, domain, &flagExists);
