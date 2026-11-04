@@ -1462,20 +1462,12 @@ static NSImage *_brImage;
 		[submenu addItem:item];
 	}
 
-	// the count as a badge sits right next to the submenu arrow (macOS 14+)
-	NSMenuItem *item = nil;
-	if (@available(macOS 14.0, *)) {
-		item = [[[NSMenuItem alloc] initWithTitle:@"" action:NULL keyEquivalent:@""] autorelease];
-		[item setAttributedTitle:[[[NSAttributedString alloc] initWithString:@"Tags" attributes:_labelColumnAttributes] autorelease]];
-		[item setIndentationLevel:1];
-		[item setBadge:[[[NSMenuItemBadge alloc] initWithCount:[tags count]] autorelease]];
-	}
-	else {
-		item = [self infoItemWithLabel:@"Tags"
-								  info:[NSString stringWithFormat:@"%lu", (unsigned long)[tags count]]
-								action:NULL
-							   tooltip:nil];
-	}
+	// just "Tags (n)" on the left: a right-aligned count (or a badge, which adds its own
+	// column to the menu's width) leaves a gap before the submenu arrow
+	NSMenuItem *item = [[[NSMenuItem alloc] initWithTitle:@"" action:NULL keyEquivalent:@""] autorelease];
+	NSString *title = [NSString stringWithFormat:@"Tags (%lu)", (unsigned long)[tags count]];
+	[item setAttributedTitle:[[[NSAttributedString alloc] initWithString:title attributes:_labelColumnAttributes] autorelease]];
+	[item setIndentationLevel:1];
 	[item setEnabled:YES];   // NULL action disables info rows; this one opens a submenu
 	[item setSubmenu:submenu];
 	return item;
