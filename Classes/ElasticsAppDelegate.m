@@ -1439,33 +1439,47 @@ static NSImage *_brImage;
 // details, so a screenshot or copy of the details says which instance it is.
 - (NSMenuItem *)headerItemForInstance:(EC2Instance *)instance
 {
-	// a one-cell table as wide as the detail rows (less the state icon), so a long
-	// name wraps instead of widening the menu
-	NSTextTable *table = [[[NSTextTable alloc] init] autorelease];
-	[table setNumberOfColumns:1];
-	[table setLayoutAlgorithm:NSTextTableAutomaticLayoutAlgorithm];
-	[table setHidesEmptyCells:NO];
-	NSTextTableBlock *block = [[[NSTextTableBlock alloc] initWithTable:table startingRow:0 rowSpan:1 startingColumn:0 columnSpan:1] autorelease];
-	[block setContentWidth:kInstanceInfoTableWidth - 22.f type:NSTextBlockAbsoluteValueType];
+	NSString *name = [instance.title length] ? instance.title : instance.instanceId;
+	if (!name)
+		name = @"";
 
 	NSMutableParagraphStyle *paragraphStyle = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] autorelease];
-	[paragraphStyle setAlignment:NSLeftTextAlignment];
-	[paragraphStyle setLineBreakMode:NSLineBreakByWordWrapping];
-	[paragraphStyle setTextBlocks:[NSArray arrayWithObject:block]];
 	[paragraphStyle setParagraphSpacing:3.f];
-
 	NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:
 								[NSFont boldSystemFontOfSize:13.f], NSFontAttributeName,
 								[NSColor labelColor], NSForegroundColorAttributeName,
 								paragraphStyle, NSParagraphStyleAttributeName,
 								nil];
+
+	// NSMenu sizes itself to a title's unwrapped width, so wrap a long name with
+	// explicit line breaks, as wide as the detail rows (less the state icon)
+	NSTextStorage *storage = [[[NSTextStorage alloc] initWithString:name attributes:attributes] autorelease];
+	NSLayoutManager *layoutManager = [[[NSLayoutManager alloc] init] autorelease];
+	NSTextContainer *container = [[[NSTextContainer alloc] initWithSize:NSMakeSize(kInstanceInfoTableWidth - 22.f, CGFLOAT_MAX)] autorelease];
+	[container setLineFragmentPadding:0.f];
+	[layoutManager addTextContainer:container];
+	[storage addLayoutManager:layoutManager];
+
+	NSMutableArray *lines = [NSMutableArray array];
+	NSUInteger glyphIndex = 0, glyphCount = [layoutManager numberOfGlyphs];
+	while (glyphIndex < glyphCount) {
+		NSRange glyphRange;
+		[layoutManager lineFragmentRectForGlyphAtIndex:glyphIndex effectiveRange:&glyphRange];
+		NSRange charRange = [layoutManager characterRangeForGlyphRange:glyphRange actualGlyphRange:NULL];
+		NSString *line = [[name substringWithRange:charRange] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+		if ([line length])
+			[lines addObject:line];
+		glyphIndex = NSMaxRange(glyphRange);
+	}
+	NSString *wrapped = [lines count] ? [lines componentsJoinedByString:@"\n"] : name;
+
 	NSMenuItem *item = [[[NSMenuItem alloc] initWithTitle:@"" action:NULL keyEquivalent:@""] autorelease];
-	NSString *name = [instance.title length] ? instance.title : instance.instanceId;
-	[item setAttributedTitle:[[[NSAttributedString alloc] initWithString:(name ? name : @"") attributes:attributes] autorelease]];
+	[item setAttributedTitle:[[[NSAttributedString alloc] initWithString:wrapped attributes:attributes] autorelease]];
 	[item setImage:[self stateImageForInstance:instance]];
 	[item setIndentationLevel:1];
 	[item setEnabled:NO];
 	[item setToolTip:instance.instanceId];
+	[item setRepresentedObject:name];   // unwrapped, for Copy Details as Text
 	[item setTag:kInstanceHeaderMenuItemTag];
 	return item;
 }
@@ -1579,7 +1593,8 @@ static NSImage *_brImage;
 			continue;
 
 		if ([item tag] == kInstanceHeaderMenuItemTag) {
-			[lines addObject:[NSString stringWithFormat:@"*%@*", text]];
+			NSString *name = [[item representedObject] isKindOfClass:[NSString class]] ? [item representedObject] : text;
+			[lines addObject:[NSString stringWithFormat:@"*%@*", name]];
 		}
 		else {
 			NSRange newline = [text rangeOfString:@"\n"];
