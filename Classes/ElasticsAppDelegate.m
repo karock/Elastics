@@ -28,6 +28,33 @@ static NSString *const kElasticsPreferencesApplicationPath	= @"Contents/Helpers/
 static const NSInteger kInstanceMenuItemTag = -100;
 // Group menu items (a submenu of instance items) carry this tag
 static const NSInteger kInstanceGroupMenuItemTag = -101;
+// The instance name at the top of an instance's details submenu
+static const NSInteger kInstanceHeaderMenuItemTag = 102;
+
+// Bitmap of a view at screen resolution, drawn with the given appearance
+static NSBitmapImageRep *ElasticsBitmapOfView(NSView *view, NSAppearance *appearance)
+{
+	NSRect bounds = [view bounds];
+	CGFloat scale = [[NSScreen mainScreen] backingScaleFactor];
+	if (scale < 1.f)
+		scale = 2.f;
+
+	NSBitmapImageRep *bitmap = [[[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL
+																		 pixelsWide:(NSInteger)ceil(NSWidth(bounds) * scale)
+																		 pixelsHigh:(NSInteger)ceil(NSHeight(bounds) * scale)
+																	  bitsPerSample:8
+																	samplesPerPixel:4
+																		   hasAlpha:YES
+																		   isPlanar:NO
+																	 colorSpaceName:NSCalibratedRGBColorSpace
+																		bytesPerRow:0
+																	   bitsPerPixel:0] autorelease];
+	[bitmap setSize:bounds.size];
+	[appearance performAsCurrentDrawingAppearance:^{
+		[view cacheDisplayInRect:bounds toBitmapImageRep:bitmap];
+	}];
+	return bitmap;
+}
 
 // Quote a value as one POSIX shell word: 'it'\''s' -> it's
 static NSString *ElasticsShellQuote(NSString *value)
@@ -92,6 +119,11 @@ static NSString *ElasticsAppleScriptEscape(NSString *value)
 - (NSMenuItem *)infoItemWithLabel:(NSString *)label info:(NSString *)info action:(SEL)action tooltip:(NSString *)tooltip
 					   tableWidth:(CGFloat)tableWidth labelWidth:(CGFloat)labelWidth;
 - (NSMenuItem *)tagsItemForInstance:(EC2Instance *)instance;
+- (NSImage *)stateImageForInstance:(EC2Instance *)instance;
+- (NSMenuItem *)headerItemForInstance:(EC2Instance *)instance;
+- (NSArray *)shareableDetailItemsInMenu:(NSMenu *)menu;
+- (void)copyInstanceDetailsImageAction:(id)sender;
+- (void)copyInstanceDetailsTextAction:(id)sender;
 - (NSArray *)consoleLinkItemsWithLabel:(NSString *)label info:(NSString *)info tooltip:(NSString *)tooltip
 							consoleURL:(NSURL *)url copyValue:(NSString *)copyValue;
 - (void)openConsoleAction:(id)sender;
@@ -1227,6 +1259,7 @@ static NSImage *_brImage;
 	
 	[menu removeAllItems];
 
+	[menu addItem:[self headerItemForInstance:instance]];
 	[menu addItem:[self titleItemWithTitle:@"INSTANCE DETAILS"]];
 	NSString *awsRegion = [[NSUserDefaults standardUserDefaults] awsRegion];
 	for (NSMenuItem *item in [self consoleLinkItemsWithLabel:@"Instance ID"
@@ -1306,6 +1339,21 @@ static NSImage *_brImage;
 		else
 			[menu addItem:[self actionItemWithLabel:@"Connect (SSH)..." info:nil action:@selector(connectToInstanceWithSshAction:)]];
 	}
+	else {
+		[menu addItem:[NSMenuItem separatorItem]];
+	}
+
+	// share: a picture of these details for Slack and the like; hold Option for text
+	NSMenuItem *copyImageItem = [self actionItemWithLabel:@"Copy Details as Image" info:nil action:@selector(copyInstanceDetailsImageAction:)];
+	[copyImageItem setToolTip:@"Copy a picture of these details, ready to paste (hold \u2325 to copy them as text)"];
+	[copyImageItem setKeyEquivalentModifierMask:0];
+	[menu addItem:copyImageItem];
+
+	NSMenuItem *copyTextItem = [self actionItemWithLabel:@"Copy Details as Text" info:nil action:@selector(copyInstanceDetailsTextAction:)];
+	[copyTextItem setToolTip:@"Copy these details as text"];
+	[copyTextItem setKeyEquivalentModifierMask:NSEventModifierFlagOption];
+	[copyTextItem setAlternate:YES];
+	[menu addItem:copyTextItem];
 	
 //	[menu addItem:[NSMenuItem separatorItem]];
 //	[menu addItem:[self actionItemWithLabel:@"Restart..." action:@selector(connectToInstanceAction:)]];
@@ -1375,6 +1423,162 @@ static NSImage *_brImage;
 	[copyItem setAlternate:YES];
 
 	return [NSArray arrayWithObjects:openItem, copyItem, nil];
+}
+
+- (NSImage *)stateImageForInstance:(EC2Instance *)instance
+{
+	switch (instance.instanceState.code & 0xFF) {
+		case EC2_INSTANCE_STATE_RUNNING:		return [NSImage imageNamed:@"InstanceStateRunning"];
+		case EC2_INSTANCE_STATE_STOPPED:		return [NSImage imageNamed:@"InstanceStateStopped"];
+		case EC2_INSTANCE_STATE_TERMINATED:	return [NSImage imageNamed:@"InstanceStateTerminated"];
+		default:								return [NSImage imageNamed:@"InstanceStateOther"];
+	}
+}
+
+// The instance's name (Name tag, or its ID) with its state icon, at the top of its
+// details, so a screenshot or copy of the details says which instance it is.
+- (NSMenuItem *)headerItemForInstance:(EC2Instance *)instance
+{
+	NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:
+								[NSFont boldSystemFontOfSize:15.f], NSFontAttributeName,
+								[NSColor labelColor], NSForegroundColorAttributeName,
+								nil];
+	NSMenuItem *item = [[[NSMenuItem alloc] initWithTitle:@"" action:NULL keyEquivalent:@""] autorelease];
+	NSString *name = [instance.title length] ? instance.title : instance.instanceId;
+	[item setAttributedTitle:[[[NSAttributedString alloc] initWithString:(name ? name : @"") attributes:attributes] autorelease]];
+	[item setImage:[self stateImageForInstance:instance]];
+	[item setIndentationLevel:1];
+	[item setEnabled:NO];
+	[item setToolTip:instance.instanceId];
+	[item setTag:kInstanceHeaderMenuItemTag];
+	return item;
+}
+
+// The rows of an instance's details submenu worth sharing: the name, section titles,
+// detail rows and the CPU chart, without actions (Connect, Copy), submenus (Tags)
+// and Option-key alternates.
+- (NSArray *)shareableDetailItemsInMenu:(NSMenu *)menu
+{
+	NSMutableArray *items = [NSMutableArray array];
+	for (NSMenuItem *item in [menu itemArray]) {
+		if ([item isHidden] || [item isAlternate] || [item hasSubmenu])
+			continue;
+		SEL action = [item action];
+		if (action == @selector(connectToInstanceWithSshAction:) || action == @selector(connectToInstanceWithRdpAction:)
+			|| action == @selector(copyInstanceDetailsImageAction:) || action == @selector(copyInstanceDetailsTextAction:))
+			continue;
+		[items addObject:item];
+	}
+	// no trailing separators
+	while ([items count] && [[items lastObject] isSeparatorItem])
+		[items removeLastObject];
+	return items;
+}
+
+// Renders the details as they appear in the menu (same rows, fonts and chart) into
+// an image on the clipboard, in the current light/dark appearance.
+- (void)copyInstanceDetailsImageAction:(id)sender
+{
+	NSMenu *menu = [(NSMenuItem *)sender menu];
+	NSAppearance *appearance = [NSApp effectiveAppearance];
+	NSMutableAttributedString *card = [[[NSMutableAttributedString alloc] init] autorelease];
+	NSDictionary *spacerAttributes = [NSDictionary dictionaryWithObject:[NSFont systemFontOfSize:5.f] forKey:NSFontAttributeName];
+
+	for (NSMenuItem *item in [self shareableDetailItemsInMenu:menu]) {
+		if ([item isSeparatorItem]) {
+			[card appendAttributedString:[[[NSAttributedString alloc] initWithString:@"\n" attributes:spacerAttributes] autorelease]];
+			continue;
+		}
+
+		if ([item view]) {
+			// the CPU chart: a picture of the view as drawn in the menu
+			NSBitmapImageRep *chart = ElasticsBitmapOfView([item view], appearance);
+			NSImage *chartImage = [[[NSImage alloc] initWithSize:[chart size]] autorelease];
+			[chartImage addRepresentation:chart];
+			NSTextAttachment *attachment = [[[NSTextAttachment alloc] init] autorelease];
+			[attachment setImage:chartImage];
+			[attachment setBounds:NSMakeRect(0, 0, [chart size].width, [chart size].height)];
+			[card appendAttributedString:[NSAttributedString attributedStringWithAttachment:attachment]];
+			[card appendAttributedString:[[[NSAttributedString alloc] initWithString:@"\n"] autorelease]];
+			continue;
+		}
+
+		if ([item image]) {
+			NSTextAttachment *attachment = [[[NSTextAttachment alloc] init] autorelease];
+			[attachment setImage:[item image]];
+			[attachment setBounds:NSMakeRect(0, -3.f, 18.f, 18.f)];
+			[card appendAttributedString:[NSAttributedString attributedStringWithAttachment:attachment]];
+			[card appendAttributedString:[[[NSAttributedString alloc] initWithString:@" "] autorelease]];
+		}
+		NSAttributedString *title = [item attributedTitle];
+		if (!title)
+			title = [[[NSAttributedString alloc] initWithString:[item title]] autorelease];
+		[card appendAttributedString:title];
+		[card appendAttributedString:[[[NSAttributedString alloc] initWithString:@"\n"] autorelease]];
+	}
+
+	// lay the text out in an off-screen text view as wide as the menu
+	const CGFloat inset = 14.f;
+	CGFloat width = MAX([menu size].width, 280.f) + 2 * inset;
+	NSTextView *textView = [[[NSTextView alloc] initWithFrame:NSMakeRect(0, 0, width, 100.f)] autorelease];
+	[textView setAppearance:appearance];
+	[textView setTextContainerInset:NSMakeSize(inset, inset)];
+	[textView setDrawsBackground:YES];
+	[textView setBackgroundColor:[NSColor windowBackgroundColor]];
+	[[textView textStorage] setAttributedString:card];
+	[[textView layoutManager] ensureLayoutForTextContainer:[textView textContainer]];
+	NSRect used = [[textView layoutManager] usedRectForTextContainer:[textView textContainer]];
+	[textView setFrameSize:NSMakeSize(width, ceil(NSHeight(used)) + 2 * inset)];
+
+	NSBitmapImageRep *bitmap = ElasticsBitmapOfView(textView, appearance);
+	NSData *png = [bitmap representationUsingType:NSBitmapImageFileTypePNG properties:[NSDictionary dictionary]];
+	NSImage *image = [[[NSImage alloc] initWithSize:[bitmap size]] autorelease];
+	[image addRepresentation:bitmap];
+
+	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+	[pasteboard clearContents];
+	[pasteboard writeObjects:[NSArray arrayWithObject:image]];   // TIFF, for apps that want it
+	if (png) {
+		[pasteboard addTypes:[NSArray arrayWithObject:NSPasteboardTypePNG] owner:nil];
+		[pasteboard setData:png forType:NSPasteboardTypePNG];
+	}
+}
+
+// The same details as text: "*name*", section titles, and "Label: value" lines.
+- (void)copyInstanceDetailsTextAction:(id)sender
+{
+	NSMenu *menu = [(NSMenuItem *)sender menu];
+	NSMutableArray *lines = [NSMutableArray array];
+
+	for (NSMenuItem *item in [self shareableDetailItemsInMenu:menu]) {
+		if ([item isSeparatorItem] || [item view])
+			continue;
+		NSString *text = [[item attributedTitle] string] ? [[item attributedTitle] string] : [item title];
+		text = [text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+		if (![text length])
+			continue;
+
+		if ([item tag] == kInstanceHeaderMenuItemTag) {
+			[lines addObject:[NSString stringWithFormat:@"*%@*", text]];
+		}
+		else {
+			NSRange newline = [text rangeOfString:@"\n"];
+			if (newline.location != NSNotFound) {
+				// a two-column row: "label\nvalue"
+				NSString *label = [[text substringToIndex:newline.location] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+				NSString *value = [[text substringFromIndex:NSMaxRange(newline)] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+				[lines addObject:[NSString stringWithFormat:@"%@: %@", label, value]];
+			}
+			else {
+				[lines addObject:@""];
+				[lines addObject:[text capitalizedString]];   // section title, e.g. "Instance Details"
+			}
+		}
+	}
+
+	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+	[pasteboard clearContents];
+	[pasteboard setString:[lines componentsJoinedByString:@"\n"] forType:NSPasteboardTypeString];
 }
 
 // Storage rows: the root device type, then one row per attached EBS volume (root

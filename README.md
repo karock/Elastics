@@ -38,6 +38,14 @@ group at the bottom, and **Put terminated instances in a "Terminated" submenu** 
 the same for terminated ones (when they aren't hidden altogether). Searching always
 shows a flat list of all matches.
 
+## Sharing instance details
+
+Each instance's details start with its name, so a screenshot of just the details
+says which instance it is. **Copy Details as Image** at the bottom of the details
+puts a picture of them (including the CPU chart, in the current light or dark
+appearance) on the clipboard, ready to paste into Slack; hold Option for
+**Copy Details as Text**.
+
 ## Demo mode (for screenshots)
 
 Demo mode shows a made-up fleet (about 20 instances across three regions, with
