@@ -96,8 +96,10 @@
 	
 		[NSGraphicsContext saveGraphicsState]; {
 			
-			NSSize menuSize = [[[self enclosingMenuItem] menu] size];
-			NSRect chartRect = NSMakeRect(0, 0, menuSize.width, MIN_HEIGHT);
+			// in a menu, as wide as the menu; elsewhere (Copy Details as Image), as wide as the view
+			NSMenu *menu = [[self enclosingMenuItem] menu];
+			CGFloat width = menu ? [menu size].width : NSWidth([self bounds]);
+			NSRect chartRect = NSMakeRect(0, 0, width, MIN_HEIGHT);
 			chartRect = NSInsetRect(chartRect, PADDING_LEFT, 0);
 			chartRect = NSInsetRect(chartRect, 0, PADDING_BOTTOM);
 			chartRect = NSOffsetRect(chartRect, 0, PADDING_BOTTOM);

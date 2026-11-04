@@ -86,6 +86,76 @@ static NSString *ElasticsAppleScriptEscape(NSString *value)
 	return [escaped stringByReplacingOccurrencesOfString:@"\"" withString:@"\\\""];
 }
 
+// The picture made by Copy Details as Image: rows of text, icons and separators laid
+// out like the menu (subviews, such as the CPU chart, are drawn too)
+@interface ElasticsDetailsCardView : NSView {
+	NSMutableArray *_rows;
+}
+- (void)addText:(NSAttributedString *)text inRect:(NSRect)rect;
+- (void)addImage:(NSImage *)image inRect:(NSRect)rect;
+- (void)addSeparatorInRect:(NSRect)rect;
+@end
+
+@implementation ElasticsDetailsCardView
+
+- (id)initWithFrame:(NSRect)frame
+{
+	self = [super initWithFrame:frame];
+	if (self)
+		_rows = [[NSMutableArray alloc] init];
+	return self;
+}
+
+- (void)dealloc
+{
+	[_rows release];
+	[super dealloc];
+}
+
+- (BOOL)isFlipped
+{
+	return YES;
+}
+
+- (void)addText:(NSAttributedString *)text inRect:(NSRect)rect
+{
+	[_rows addObject:[NSDictionary dictionaryWithObjectsAndKeys:text, @"text", [NSValue valueWithRect:rect], @"rect", nil]];
+}
+
+- (void)addImage:(NSImage *)image inRect:(NSRect)rect
+{
+	[_rows addObject:[NSDictionary dictionaryWithObjectsAndKeys:image, @"image", [NSValue valueWithRect:rect], @"rect", nil]];
+}
+
+- (void)addSeparatorInRect:(NSRect)rect
+{
+	[_rows addObject:[NSDictionary dictionaryWithObjectsAndKeys:[NSValue valueWithRect:rect], @"rect", nil]];
+}
+
+- (void)drawRect:(NSRect)dirtyRect
+{
+	[[NSColor windowBackgroundColor] setFill];
+	NSRectFill([self bounds]);
+
+	for (NSDictionary *row in _rows) {
+		NSRect rect = [[row objectForKey:@"rect"] rectValue];
+		NSAttributedString *text = [row objectForKey:@"text"];
+		NSImage *image = [row objectForKey:@"image"];
+		if (text) {
+			[text drawWithRect:rect options:NSStringDrawingUsesLineFragmentOrigin];
+		}
+		else if (image) {
+			[image drawInRect:rect fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:1.f respectFlipped:YES hints:nil];
+		}
+		else {
+			[[NSColor separatorColor] setFill];
+			NSRectFillUsingOperation(rect, NSCompositingOperationSourceOver);
+		}
+	}
+}
+
+@end
+
 @interface ElasticsAppDelegate () <NSSearchFieldDelegate>
 
 - (void)setUpSearchItem;
@@ -1392,10 +1462,20 @@ static NSImage *_brImage;
 		[submenu addItem:item];
 	}
 
-	NSMenuItem *item = [self infoItemWithLabel:@"Tags"
-										  info:[NSString stringWithFormat:@"%lu", (unsigned long)[tags count]]
-										action:NULL
-									   tooltip:nil];
+	// the count as a badge sits right next to the submenu arrow (macOS 14+)
+	NSMenuItem *item = nil;
+	if (@available(macOS 14.0, *)) {
+		item = [[[NSMenuItem alloc] initWithTitle:@"" action:NULL keyEquivalent:@""] autorelease];
+		[item setAttributedTitle:[[[NSAttributedString alloc] initWithString:@"Tags" attributes:_labelColumnAttributes] autorelease]];
+		[item setIndentationLevel:1];
+		[item setBadge:[[[NSMenuItemBadge alloc] initWithCount:[tags count]] autorelease]];
+	}
+	else {
+		item = [self infoItemWithLabel:@"Tags"
+								  info:[NSString stringWithFormat:@"%lu", (unsigned long)[tags count]]
+								action:NULL
+							   tooltip:nil];
+	}
 	[item setEnabled:YES];   // NULL action disables info rows; this one opens a submenu
 	[item setSubmenu:submenu];
 	return item;
@@ -1511,60 +1591,54 @@ static NSImage *_brImage;
 {
 	NSMenu *menu = [(NSMenuItem *)sender menu];
 	NSAppearance *appearance = [NSApp effectiveAppearance];
-	NSMutableAttributedString *card = [[[NSMutableAttributedString alloc] init] autorelease];
-	NSDictionary *spacerAttributes = [NSDictionary dictionaryWithObject:[NSFont systemFontOfSize:5.f] forKey:NSFontAttributeName];
+
+	// rows as wide as the menu's detail rows, spaced like menu items
+	const CGFloat margin = 16.f, width = kInstanceInfoTableWidth, iconSize = 16.f, iconSpace = 22.f;
+	ElasticsDetailsCardView *card = [[[ElasticsDetailsCardView alloc] initWithFrame:NSMakeRect(0, 0, width + 2 * margin, 100.f)] autorelease];
+	[card setAppearance:appearance];
+	CGFloat y = 10.f;
 
 	for (NSMenuItem *item in [self shareableDetailItemsInMenu:menu]) {
 		if ([item isSeparatorItem]) {
-			[card appendAttributedString:[[[NSAttributedString alloc] initWithString:@"\n" attributes:spacerAttributes] autorelease]];
+			[card addSeparatorInRect:NSMakeRect(margin - 6.f, y + 5.f, width + 12.f, 1.f)];
+			y += 11.f;
 			continue;
 		}
 
 		if ([item view]) {
-			// the CPU chart: a picture of the view as drawn in the menu
-			NSBitmapImageRep *chart = ElasticsBitmapOfView([item view], appearance);
-			NSImage *chartImage = [[[NSImage alloc] initWithSize:[chart size]] autorelease];
-			[chartImage addRepresentation:chart];
-			NSTextAttachment *attachment = [[[NSTextAttachment alloc] init] autorelease];
-			[attachment setImage:chartImage];
-			[attachment setBounds:NSMakeRect(0, 0, [chart size].width, [chart size].height)];
-			[card appendAttributedString:[NSAttributedString attributedStringWithAttachment:attachment]];
-			[card appendAttributedString:[[[NSAttributedString alloc] initWithString:@"\n"] autorelease]];
+			if (![[item view] isKindOfClass:[ChartView class]])
+				continue;
+			// a fresh chart of the same data, as wide as the rows (the chart is inset 17 pt in its view)
+			ChartView *menuChart = (ChartView *)[item view];
+			ChartView *chart = [[[ChartView alloc] initWithRange:[menuChart chartRange] datapoints:[menuChart datapoints]] autorelease];
+			[chart setAutoresizingMask:NSViewNotSizable];
+			[chart setFrame:NSMakeRect(margin - 17.f, y + 2.f, width + 34.f, NSHeight([menuChart frame]))];
+			[card addSubview:chart];
+			y += NSHeight([menuChart frame]) + 6.f;
 			continue;
 		}
 
-		NSAttributedString *title = [item attributedTitle];
-		if (!title)
-			title = [[[NSAttributedString alloc] initWithString:[item title]] autorelease];
+		NSMutableAttributedString *text = [[[NSMutableAttributedString alloc] initWithAttributedString:
+											([item attributedTitle] ? [item attributedTitle] : [[[NSAttributedString alloc] initWithString:[item title]] autorelease])] autorelease];
+		// section titles are raised with a baseline offset in the menu; here they get their own space
+		[text removeAttribute:NSBaselineOffsetAttributeName range:NSMakeRange(0, [text length])];
+
+		CGFloat x = margin, textWidth = width;
 		if ([item image]) {
-			// the icon goes in the same paragraph (and table cell) as the title
-			NSDictionary *attributes = [title length] ? [title attributesAtIndex:0 effectiveRange:NULL] : [NSDictionary dictionary];
-			NSTextAttachment *attachment = [[[NSTextAttachment alloc] init] autorelease];
-			[attachment setImage:[item image]];
-			[attachment setBounds:NSMakeRect(0, -3.f, 16.f, 16.f)];
-			NSMutableAttributedString *icon = [[[NSMutableAttributedString alloc] initWithAttributedString:[NSAttributedString attributedStringWithAttachment:attachment]] autorelease];
-			[icon appendAttributedString:[[[NSAttributedString alloc] initWithString:@" "] autorelease]];
-			[icon addAttributes:attributes range:NSMakeRange(0, [icon length])];
-			[card appendAttributedString:icon];
+			x += iconSpace;
+			textWidth -= iconSpace;
 		}
-		[card appendAttributedString:title];
-		[card appendAttributedString:[[[NSAttributedString alloc] initWithString:@"\n"] autorelease]];
+		CGFloat textHeight = ceil(NSHeight([text boundingRectWithSize:NSMakeSize(textWidth, CGFLOAT_MAX)
+															  options:NSStringDrawingUsesLineFragmentOrigin]));
+		CGFloat rowHeight = MAX(textHeight + 10.f, 22.f);
+		if ([item image])
+			[card addImage:[item image] inRect:NSMakeRect(margin, y + floor((rowHeight - iconSize) / 2.f), iconSize, iconSize)];
+		[card addText:text inRect:NSMakeRect(x, y + floor((rowHeight - textHeight) / 2.f), textWidth, textHeight)];
+		y += rowHeight;
 	}
+	[card setFrameSize:NSMakeSize(width + 2 * margin, ceil(y + 10.f))];
 
-	// lay the text out in an off-screen text view as wide as the menu
-	const CGFloat inset = 14.f;
-	CGFloat width = MAX([menu size].width, 280.f) + 2 * inset;
-	NSTextView *textView = [[[NSTextView alloc] initWithFrame:NSMakeRect(0, 0, width, 100.f)] autorelease];
-	[textView setAppearance:appearance];
-	[textView setTextContainerInset:NSMakeSize(inset, inset)];
-	[textView setDrawsBackground:YES];
-	[textView setBackgroundColor:[NSColor windowBackgroundColor]];
-	[[textView textStorage] setAttributedString:card];
-	[[textView layoutManager] ensureLayoutForTextContainer:[textView textContainer]];
-	NSRect used = [[textView layoutManager] usedRectForTextContainer:[textView textContainer]];
-	[textView setFrameSize:NSMakeSize(width, ceil(NSHeight(used)) + 2 * inset)];
-
-	NSBitmapImageRep *bitmap = ElasticsBitmapOfView(textView, appearance);
+	NSBitmapImageRep *bitmap = ElasticsBitmapOfView(card, appearance);
 	NSData *png = [bitmap representationUsingType:NSBitmapImageFileTypePNG properties:[NSDictionary dictionary]];
 	NSImage *image = [[[NSImage alloc] initWithSize:[bitmap size]] autorelease];
 	[image addRepresentation:bitmap];
