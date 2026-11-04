@@ -17,7 +17,7 @@
 //const CGFloat kActionItemTableWidth             = 180.;
 const CGFloat kActionItemLabelColumnWidth       = 170.;
 
-const CGFloat kInstanceInfoTableWidth           = 230.;
+const CGFloat kInstanceInfoTableWidth           = 250.;	// fits a 17-digit instance ID without wrapping
 const CGFloat kInstanceInfoLabelColumnWidth     = 100.;
 
 const CGFloat kMessageTableWidth                = 180.;
@@ -1439,9 +1439,25 @@ static NSImage *_brImage;
 // details, so a screenshot or copy of the details says which instance it is.
 - (NSMenuItem *)headerItemForInstance:(EC2Instance *)instance
 {
+	// a one-cell table as wide as the detail rows (less the state icon), so a long
+	// name wraps instead of widening the menu
+	NSTextTable *table = [[[NSTextTable alloc] init] autorelease];
+	[table setNumberOfColumns:1];
+	[table setLayoutAlgorithm:NSTextTableAutomaticLayoutAlgorithm];
+	[table setHidesEmptyCells:NO];
+	NSTextTableBlock *block = [[[NSTextTableBlock alloc] initWithTable:table startingRow:0 rowSpan:1 startingColumn:0 columnSpan:1] autorelease];
+	[block setContentWidth:kInstanceInfoTableWidth - 22.f type:NSTextBlockAbsoluteValueType];
+
+	NSMutableParagraphStyle *paragraphStyle = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] autorelease];
+	[paragraphStyle setAlignment:NSLeftTextAlignment];
+	[paragraphStyle setLineBreakMode:NSLineBreakByWordWrapping];
+	[paragraphStyle setTextBlocks:[NSArray arrayWithObject:block]];
+	[paragraphStyle setParagraphSpacing:3.f];
+
 	NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:
-								[NSFont boldSystemFontOfSize:15.f], NSFontAttributeName,
+								[NSFont boldSystemFontOfSize:13.f], NSFontAttributeName,
 								[NSColor labelColor], NSForegroundColorAttributeName,
+								paragraphStyle, NSParagraphStyleAttributeName,
 								nil];
 	NSMenuItem *item = [[[NSMenuItem alloc] initWithTitle:@"" action:NULL keyEquivalent:@""] autorelease];
 	NSString *name = [instance.title length] ? instance.title : instance.instanceId;
@@ -1503,16 +1519,20 @@ static NSImage *_brImage;
 			continue;
 		}
 
-		if ([item image]) {
-			NSTextAttachment *attachment = [[[NSTextAttachment alloc] init] autorelease];
-			[attachment setImage:[item image]];
-			[attachment setBounds:NSMakeRect(0, -3.f, 18.f, 18.f)];
-			[card appendAttributedString:[NSAttributedString attributedStringWithAttachment:attachment]];
-			[card appendAttributedString:[[[NSAttributedString alloc] initWithString:@" "] autorelease]];
-		}
 		NSAttributedString *title = [item attributedTitle];
 		if (!title)
 			title = [[[NSAttributedString alloc] initWithString:[item title]] autorelease];
+		if ([item image]) {
+			// the icon goes in the same paragraph (and table cell) as the title
+			NSDictionary *attributes = [title length] ? [title attributesAtIndex:0 effectiveRange:NULL] : [NSDictionary dictionary];
+			NSTextAttachment *attachment = [[[NSTextAttachment alloc] init] autorelease];
+			[attachment setImage:[item image]];
+			[attachment setBounds:NSMakeRect(0, -3.f, 16.f, 16.f)];
+			NSMutableAttributedString *icon = [[[NSMutableAttributedString alloc] initWithAttributedString:[NSAttributedString attributedStringWithAttachment:attachment]] autorelease];
+			[icon appendAttributedString:[[[NSAttributedString alloc] initWithString:@" "] autorelease]];
+			[icon addAttributes:attributes range:NSMakeRange(0, [icon length])];
+			[card appendAttributedString:icon];
+		}
 		[card appendAttributedString:title];
 		[card appendAttributedString:[[[NSAttributedString alloc] initWithString:@"\n"] autorelease]];
 	}
