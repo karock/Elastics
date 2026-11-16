@@ -20,6 +20,8 @@ Changes from Elastics 1.6:
   (hold Option to copy the ID instead)
 - Dark Mode fixes and modern menu bar icon
 
+What changed in each release is in [CHANGELOG.md](CHANGELOG.md).
+
 ## Grouping instances
 
 Long instance lists can be grouped into submenus. In Preferences > General, choose
