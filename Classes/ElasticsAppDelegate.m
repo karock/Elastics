@@ -246,6 +246,7 @@ static NSString *ElasticsAppleScriptEscape(NSString *value)
 	NSArray			*_displayedInstances;   // EC2Instance, in display order
 	NSMutableArray	*_instanceSectionItems; // top-level items currently in the instance section
 	BOOL			_instanceSectionIsFlat; // YES while searching: no groups, every instance listed
+	NSUInteger		_credentialRetries;     // reloads tried after an account's keys couldn't be read
 }
 
 @synthesize aboutPanel = _aboutPanel;
@@ -1929,12 +1930,26 @@ static NSImage *_brImage;
 		account = [[_accountsManager accounts] objectAtIndex:0];
 	}
 	
-	if (account) {
+	if ([account.accessKeyID length] && [account.secretAccessKey length]) {
+		// (only remember a readable account: an unreadable one has no saved ID either)
 		[[NSUserDefaults standardUserDefaults] setAccountId:account.accountId];
 		[options setObject:account.accessKeyID forKey:kAWSAccessKeyIdOption];
 		[options setObject:account.secretAccessKey forKey:kAWSSecretAccessKeyOption];
+		_credentialRetries = 0;
 	}
 	else {
+		// No account, or its keys couldn't be read from the keychain: it can be busy
+		// while Preferences saves an account, or access was denied. (Putting the nil
+		// keys in the dictionary crashed Elastics.) Try reading them again shortly.
+		if (account) {
+			NSLog(@"Elastics: could not read the keys of account \"%@\" from the keychain", account.title);
+			if (_credentialRetries < 3) {
+				_credentialRetries++;
+				[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(preferencesDidChange:) object:nil];
+				[self performSelector:@selector(preferencesDidChange:) withObject:nil afterDelay:2.0];
+			}
+		}
+
 		// reset credentials in API
 		[options setObject:@"" forKey:kAWSAccessKeyIdOption];
 		[options setObject:@"" forKey:kAWSSecretAccessKeyOption];
