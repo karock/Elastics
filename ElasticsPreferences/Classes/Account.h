@@ -25,6 +25,7 @@ extern NSString *const kAccountDidChangeNotification;
     NSString            *_sshOptions;
     NSString            *_awsProfile;
 	SecKeychainItemRef	_itemRef;
+	OSStatus			_keychainStatus;
 }
 
 + (id)accountWithID:(NSInteger)accountId
@@ -65,6 +66,7 @@ sshPrivateKeyFile:(NSString *)sshPrivateKeyFile
 @property (nonatomic, copy) NSString *sshOptions;
 @property (nonatomic, copy) NSString *awsProfile;      // AWS CLI profile for SSM sessions; nil = AWS CLI default
 @property (nonatomic, readonly) SecKeychainItemRef itemRef;
+@property (nonatomic, readonly) OSStatus keychainStatus;   // result of reading the keys from the keychain (noErr if read)
 
 @property (nonatomic, readonly) NSString *title;
 

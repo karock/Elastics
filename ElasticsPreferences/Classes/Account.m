@@ -32,6 +32,7 @@ NSString *const kAccountDidChangeNotification	= @"kAccountsDidChangeNotification
 @synthesize sshOptions = _sshOptions;
 @synthesize awsProfile = _awsProfile;
 @synthesize itemRef = _itemRef;
+@synthesize keychainStatus = _keychainStatus;
 
 + (id)accountWithID:(NSInteger)accountId
                name:(NSString *)name
@@ -125,6 +126,20 @@ sshPrivateKeyFile:(NSString *)sshPrivateKeyFile
 			
 			SecKeychainItemFreeContent(&attributes, data);
 		}
+		else {
+			// The secret key couldn't be read (e.g. the keychain refused this app). The
+			// attributes aren't protected, so still read those: the account keeps its
+			// name, ID and access key ID instead of turning into "Untitled".
+			NSLog(@"Elastics: could not read an account's keys from the keychain: %d (%@)", (int)status,
+				  [NSMakeCollectable(SecCopyErrorMessageString(status, NULL)) autorelease]);
+			if (SecKeychainItemCopyContent(itemRef, NULL, &attributes, NULL, NULL) == noErr) {
+				TBRelease(_accessKeyID);
+				_accessKeyID = [[NSString alloc] initWithBytes:attrs[0].data length:attrs[0].length encoding:NSUTF8StringEncoding];
+				[self _unarchiveGenericAttributes:[NSData dataWithBytes:attrs[1].data length:attrs[1].length]];
+				SecKeychainItemFreeContent(&attributes, NULL);
+			}
+		}
+		_keychainStatus = status;
 	}
 	return self;
 }
