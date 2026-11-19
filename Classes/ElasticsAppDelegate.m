@@ -56,6 +56,32 @@ static NSBitmapImageRep *ElasticsBitmapOfView(NSView *view, NSAppearance *appear
 	return bitmap;
 }
 
+// The text with explicit line breaks where it wraps at the given width. NSMenu sizes
+// an item to its title's unwrapped width and height, so a title that should wrap
+// (and not widen the menu, or get cut off) needs its breaks put in.
+static NSString *ElasticsWrappedText(NSString *text, NSDictionary *attributes, CGFloat width, NSString *separator)
+{
+	NSTextStorage *storage = [[[NSTextStorage alloc] initWithString:text attributes:attributes] autorelease];
+	NSLayoutManager *layoutManager = [[[NSLayoutManager alloc] init] autorelease];
+	NSTextContainer *container = [[[NSTextContainer alloc] initWithSize:NSMakeSize(width, CGFLOAT_MAX)] autorelease];
+	[container setLineFragmentPadding:0.f];
+	[layoutManager addTextContainer:container];
+	[storage addLayoutManager:layoutManager];
+
+	NSMutableArray *lines = [NSMutableArray array];
+	NSUInteger glyphIndex = 0, glyphCount = [layoutManager numberOfGlyphs];
+	while (glyphIndex < glyphCount) {
+		NSRange glyphRange;
+		[layoutManager lineFragmentRectForGlyphAtIndex:glyphIndex effectiveRange:&glyphRange];
+		NSRange charRange = [layoutManager characterRangeForGlyphRange:glyphRange actualGlyphRange:NULL];
+		NSString *line = [[text substringWithRange:charRange] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+		if ([line length])
+			[lines addObject:line];
+		glyphIndex = NSMaxRange(glyphRange);
+	}
+	return [lines count] ? [lines componentsJoinedByString:separator] : text;
+}
+
 // Quote a value as one POSIX shell word: 'it'\''s' -> it's
 static NSString *ElasticsShellQuote(NSString *value)
 {
@@ -1065,6 +1091,9 @@ static NSImage *_brImage;
 		titleText = @" ";
 	}
 
+	// line breaks put in, or a long message (an AWS error) is cut off after its first line
+	titleText = ElasticsWrappedText(titleText, _messageItemAttributes, kMessageTableWidth, @"\u2028");
+
 	[attributedTitle replaceCharactersInRange:NSMakeRange(attributedTitleLength, 0) withString:titleText];
 	[attributedTitle setAttributes:_messageItemAttributes range:NSMakeRange(attributedTitleLength, [attributedTitle length] - attributedTitleLength)];
 	[attributedTitle addAttribute:NSParagraphStyleAttributeName value:titleParagraphStyle range:NSMakeRange(attributedTitleLength, [attributedTitle length] - attributedTitleLength)];
@@ -1534,27 +1563,9 @@ static NSImage *_brImage;
 								paragraphStyle, NSParagraphStyleAttributeName,
 								nil];
 
-	// NSMenu sizes itself to a title's unwrapped width, so wrap a long name with
-	// explicit line breaks, as wide as the detail rows (less the state icon)
-	NSTextStorage *storage = [[[NSTextStorage alloc] initWithString:name attributes:attributes] autorelease];
-	NSLayoutManager *layoutManager = [[[NSLayoutManager alloc] init] autorelease];
-	NSTextContainer *container = [[[NSTextContainer alloc] initWithSize:NSMakeSize(kInstanceInfoTableWidth - 22.f, CGFLOAT_MAX)] autorelease];
-	[container setLineFragmentPadding:0.f];
-	[layoutManager addTextContainer:container];
-	[storage addLayoutManager:layoutManager];
-
-	NSMutableArray *lines = [NSMutableArray array];
-	NSUInteger glyphIndex = 0, glyphCount = [layoutManager numberOfGlyphs];
-	while (glyphIndex < glyphCount) {
-		NSRange glyphRange;
-		[layoutManager lineFragmentRectForGlyphAtIndex:glyphIndex effectiveRange:&glyphRange];
-		NSRange charRange = [layoutManager characterRangeForGlyphRange:glyphRange actualGlyphRange:NULL];
-		NSString *line = [[name substringWithRange:charRange] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
-		if ([line length])
-			[lines addObject:line];
-		glyphIndex = NSMaxRange(glyphRange);
-	}
-	NSString *wrapped = [lines count] ? [lines componentsJoinedByString:@"\n"] : name;
+	// wrap a long name as wide as the detail rows (less the state icon), so it
+	// doesn't widen the menu
+	NSString *wrapped = ElasticsWrappedText(name, attributes, kInstanceInfoTableWidth - 22.f, @"\n");
 
 	NSMenuItem *item = [[[NSMenuItem alloc] initWithTitle:@"" action:NULL keyEquivalent:@""] autorelease];
 	[item setAttributedTitle:[[[NSAttributedString alloc] initWithString:wrapped attributes:attributes] autorelease]];
