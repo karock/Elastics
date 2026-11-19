@@ -12,6 +12,8 @@ original Elastics by Tundra Bot.
   the AWS CLI v2 and the Session Manager plugin. See "Connecting with Session
   Manager (SSM)" in the README.
 - Fixed: the SSH user name of a newly added account wasn't saved.
+- Fixed: Elastics could quit unexpectedly while an account was being saved in
+  Preferences (when it couldn't read the account's keys from the keychain).
 
 ## 1.9 (190)
 
