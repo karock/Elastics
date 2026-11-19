@@ -245,6 +245,7 @@ static NSString *ElasticsAppleScriptEscape(NSString *value)
 	NSMutableArray	*_instanceSectionItems; // top-level items currently in the instance section
 	BOOL			_instanceSectionIsFlat; // YES while searching: no groups, every instance listed
 	NSUInteger		_credentialRetries;     // reloads tried after an account's keys couldn't be read
+	NSString		*_credentialsProblem;   // shown instead of AWS's error while the keys can't be read
 }
 
 @synthesize aboutPanel = _aboutPanel;
@@ -554,6 +555,8 @@ static NSImage *_brImage;
             else
                 errorMessage = [[error userInfo] objectForKey:NSLocalizedDescriptionKey];
             
+            if (_credentialsProblem)
+                errorMessage = _credentialsProblem;   // AWS's "Authorization header..." wouldn't say why
             [_statusMenu addItem:[self errorMessageItemWithTitle:errorMessage]];
             
             [self addMenuActionItems];
@@ -1928,13 +1931,19 @@ static NSImage *_brImage;
 		[options setObject:account.accessKeyID forKey:kAWSAccessKeyIdOption];
 		[options setObject:account.secretAccessKey forKey:kAWSSecretAccessKeyOption];
 		_credentialRetries = 0;
+		[_credentialsProblem release];
+		_credentialsProblem = nil;
 	}
 	else {
 		// No account, or its keys couldn't be read from the keychain: it can be busy
 		// while Preferences saves an account, or access was denied. (Putting the nil
 		// keys in the dictionary crashed Elastics.) Try reading them again shortly.
 		if (account) {
-			NSLog(@"Elastics: could not read the keys of account \"%@\" from the keychain", account.title);
+			NSLog(@"Elastics: could not read the keys of account \"%@\" from the keychain (%d)", account.title, (int)account.keychainStatus);
+			[_credentialsProblem release];
+			_credentialsProblem = [[NSString alloc] initWithFormat:
+								   @"Can't read the keys of \u201c%@\u201d from the keychain (error %d). Edit the account in Preferences and save it again.",
+								   account.title, (int)account.keychainStatus];
 			if (_credentialRetries < 3) {
 				_credentialRetries++;
 				[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(preferencesDidChange:) object:nil];

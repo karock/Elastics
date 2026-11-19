@@ -24,6 +24,7 @@ extern NSString *const kAccountDidChangeNotification;
 	NSUInteger			_sshPort;
     NSString            *_sshOptions;
 	SecKeychainItemRef	_itemRef;
+	OSStatus			_keychainStatus;
 }
 
 + (id)accountWithID:(NSInteger)accountId
@@ -61,6 +62,7 @@ sshPrivateKeyFile:(NSString *)sshPrivateKeyFile
 @property (nonatomic, assign) NSUInteger sshPort;
 @property (nonatomic, copy) NSString *sshOptions;
 @property (nonatomic, readonly) SecKeychainItemRef itemRef;
+@property (nonatomic, readonly) OSStatus keychainStatus;   // result of reading the keys from the keychain (noErr if read)
 
 @property (nonatomic, readonly) NSString *title;
 
