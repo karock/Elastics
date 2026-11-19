@@ -238,6 +238,7 @@ static NSString *ElasticsAppleScriptEscape(NSString *value)
 - (void)loadPreferences;
 - (void)setupDataSource;
 - (void)preferencesDidChange:(NSNotification *)notification;
+- (BOOL)relaunchToReloadKeychain;
 
 - (void)enableRefreshTimer;
 - (void)disableRefreshTimer;
@@ -273,6 +274,7 @@ static NSString *ElasticsAppleScriptEscape(NSString *value)
 	NSMutableArray	*_instanceSectionItems; // top-level items currently in the instance section
 	BOOL			_instanceSectionIsFlat; // YES while searching: no groups, every instance listed
 	NSUInteger		_credentialRetries;     // reloads tried after an account's keys couldn't be read
+	BOOL			_relaunching;           // quitting only to reopen (keep Preferences open)
 	NSString		*_credentialsProblem;   // shown instead of AWS's error while the keys can't be read
 }
 
@@ -478,8 +480,10 @@ static NSImage *_brImage;
 															   name:kPreferencesDidChangeNotification
 															 object:nil];
 	
-	// post app termination notification so Preferences will terminate too
-	[[NSDistributedNotificationCenter defaultCenter] postNotificationName:kPreferencesShouldTerminateNotification
+	// post app termination notification so Preferences will terminate too (not when
+	// Elastics is only reopening, likely just after an account was saved there)
+	if (!_relaunching)
+		[[NSDistributedNotificationCenter defaultCenter] postNotificationName:kPreferencesShouldTerminateNotification
 																   object:nil
                                                                  userInfo:nil
                                                        deliverImmediately:YES];
@@ -1954,9 +1958,16 @@ static NSImage *_brImage;
 		_credentialsProblem = nil;
 	}
 	else {
-		// No account, or its keys couldn't be read from the keychain: it can be busy
-		// while Preferences saves an account, or access was denied. (Putting the nil
+		// No account, or its keys couldn't be read from the keychain. (Putting the nil
 		// keys in the dictionary crashed Elastics.) Try reading them again shortly.
+		if (account && account.keychainStatus == errSecItemNotFound && _credentialRetries > 0
+			&& [self relaunchToReloadKeychain]) {
+			// Preferences changed the account's keychain item while Elastics was
+			// running: this process's view of the keychain is out of date for good
+			// (reading the item finds it but then reports it missing), and a new
+			// process reads it fine. So start again.
+			return;
+		}
 		if (account) {
 			NSLog(@"Elastics: could not read the keys of account \"%@\" from the keychain (%d)", account.title, (int)account.keychainStatus);
 			[_credentialsProblem release];
@@ -1982,6 +1993,36 @@ static NSImage *_brImage;
 	}
 	
 	[DataSource setDefaultRequestOptions:options];
+}
+
+// Quits and reopens Elastics (to read the keychain afresh). Returns NO, doing nothing,
+// if it already did so in the last minute, so a lasting problem can't relaunch it over
+// and over.
+- (BOOL)relaunchToReloadKeychain
+{
+	static NSString *const lastRelaunchKey = @"lastKeychainRelaunch";
+	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+	NSDate *lastRelaunch = [defaults objectForKey:lastRelaunchKey];
+	if ([lastRelaunch isKindOfClass:[NSDate class]] && -[lastRelaunch timeIntervalSinceNow] < 60.0)
+		return NO;
+	[defaults setObject:[NSDate date] forKey:lastRelaunchKey];
+	[defaults synchronize];
+
+	NSLog(@"Elastics: an account changed in the keychain while Elastics was running; reopening Elastics to read it");
+	// open this copy again once it has quit ($0 is the app's path, passed as an argument, not quoted into the script)
+	NSTask *task = [[[NSTask alloc] init] autorelease];
+	[task setLaunchPath:@"/bin/sh"];
+	[task setArguments:[NSArray arrayWithObjects:@"-c", @"sleep 1; /usr/bin/open \"$0\"", [[NSBundle mainBundle] bundlePath], nil]];
+	@try {
+		[task launch];
+	}
+	@catch (NSException *exception) {
+		NSLog(@"Elastics: could not reopen: %@", exception);
+		return NO;
+	}
+	_relaunching = YES;
+	[NSApp terminate:nil];
+	return YES;
 }
 
 - (void)preferencesDidChange:(NSNotification *)notification
