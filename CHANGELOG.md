@@ -3,7 +3,7 @@
 Releases of this fork (com.audiomack.Elastics). Versions before 1.7 are the
 original Elastics by Tundra Bot.
 
-## Unreleased
+## 1.10 (200)
 
 - **Connect (SSM)** for every running instance, Linux or Windows, alongside
   Connect (SSH) or (RDP). It runs `aws ssm start-session` in Terminal or iTerm,
