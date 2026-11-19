@@ -30,6 +30,7 @@ NSString *const kAccountDidChangeNotification	= @"kAccountsDidChangeNotification
 @synthesize sshUserName = _sshUserName;
 @synthesize sshPort = _sshPort;
 @synthesize sshOptions = _sshOptions;
+@synthesize awsProfile = _awsProfile;
 @synthesize itemRef = _itemRef;
 
 + (id)accountWithID:(NSInteger)accountId
@@ -40,6 +41,7 @@ NSString *const kAccountDidChangeNotification	= @"kAccountsDidChangeNotification
         sshUserName:(NSString *)sshUserName
             sshPort:(NSUInteger)sshPort
          sshOptions:(NSString *)sshOptions
+         awsProfile:(NSString *)awsProfile
 {
 	return [[[self alloc] initWithID:accountId
 								name:name
@@ -48,7 +50,8 @@ NSString *const kAccountDidChangeNotification	= @"kAccountsDidChangeNotification
 				   sshPrivateKeyFile:sshPrivateKeyFile
 						 sshUserName:sshUserName
                              sshPort:sshPort
-                          sshOptions:sshOptions]
+                          sshOptions:sshOptions
+                          awsProfile:awsProfile]
 			autorelease];
 }
 
@@ -65,6 +68,7 @@ sshPrivateKeyFile:(NSString *)sshPrivateKeyFile
      sshUserName:(NSString *)sshUserName
          sshPort:(NSUInteger)sshPort
       sshOptions:(NSString *)sshOptions
+      awsProfile:(NSString *)awsProfile
 {
     self = [super init];
     if (self) {
@@ -74,9 +78,10 @@ sshPrivateKeyFile:(NSString *)sshPrivateKeyFile
 		_secretAccessKey = [secretAccessKey copy];
 		_defaultRegion = 0;
 		_sshPrivateKeyFile = [sshPrivateKeyFile copy];
-		_sshUserName = [_sshUserName copy];
+		_sshUserName = [sshUserName copy];
         _sshPort = sshPort;
         _sshOptions = [sshOptions copy];
+        _awsProfile = [awsProfile copy];
 		_itemRef = NULL;
     }
     
@@ -132,6 +137,7 @@ sshPrivateKeyFile:(NSString *)sshPrivateKeyFile
 	[_sshPrivateKeyFile release];
 	[_sshUserName release];
     [_sshOptions release];
+    [_awsProfile release];
 
 	TBCFRelease(_itemRef);
 	
@@ -393,6 +399,7 @@ static NSString *const kAccountSshPrivateKeyFileKey			= @"sshPrivateKeyFile";
 static NSString *const kAccountSshUserNameKey				= @"sshUserName";
 static NSString *const kAccountSshPortKey                   = @"sshPort";
 static NSString *const kAccountSshOptionsKey                = @"sshOptions";
+static NSString *const kAccountAwsProfileKey                = @"awsProfile";
 
 - (NSData *)_archiveGenericAttributes
 {
@@ -406,6 +413,7 @@ static NSString *const kAccountSshOptionsKey                = @"sshOptions";
 	if (_sshUserName)		[attributes setObject:_sshUserName forKey:kAccountSshUserNameKey];
 	[attributes setObject:[NSNumber numberWithInteger:_sshPort] forKey:kAccountSshPortKey];
 	if (_sshOptions)		[attributes setObject:_sshOptions forKey:kAccountSshOptionsKey];
+	if (_awsProfile)		[attributes setObject:_awsProfile forKey:kAccountAwsProfileKey];
 
 	NSError *error = nil;
 	NSData *data = [NSKeyedArchiver archivedDataWithRootObject:attributes requiringSecureCoding:YES error:&error];
@@ -447,6 +455,7 @@ static NSInteger AccountIntegerValue(id value)
 		_sshUserName = [AccountStringValue([attributes objectForKey:kAccountSshUserNameKey]) copy];
 		_sshPort = AccountIntegerValue([attributes objectForKey:kAccountSshPortKey]);
         _sshOptions = [AccountStringValue([attributes objectForKey:kAccountSshOptionsKey]) copy];
+        _awsProfile = [AccountStringValue([attributes objectForKey:kAccountAwsProfileKey]) copy];
 	}
     else
         TBTrace(@"data dictionary is empty");

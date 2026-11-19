@@ -69,6 +69,7 @@ enum {
 @property (nonatomic, assign) NSString *sshUserName;
 @property (nonatomic, assign) NSUInteger sshPort;
 @property (nonatomic, assign) NSString *sshOptions;
+@property (nonatomic, assign) NSString *awsProfile;                        // AWS CLI profile for SSM sessions; empty = AWS CLI default
 @property (nonatomic, assign, getter=isUsingPublicDNS) BOOL usingPublicDNS;
 
 @property (nonatomic, assign) NSInteger terminalApplication;

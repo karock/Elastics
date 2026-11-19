@@ -18,6 +18,7 @@ Changes from Elastics 1.6:
 - Optional grouping of the instance list into submenus, and a Tags submenu per instance
 - Instance ID, AMI, Auto Scaling group and EBS volume rows open the AWS Console
   (hold Option to copy the ID instead)
+- Connect with AWS Systems Manager Session Manager (SSM) as well as SSH and RDP
 - Dark Mode fixes and modern menu bar icon
 
 What changed in each release is in [CHANGELOG.md](CHANGELOG.md).
@@ -62,6 +63,54 @@ defaults delete com.audiomack.Elastics-Preferences demoMode            # off
 Quit and reopen Elastics after switching. All names, IDs and addresses are
 invented (IPs from private and documentation ranges). Grouping and other settings
 you change while in demo mode are kept afterwards.
+
+## Connecting with Session Manager (SSM)
+
+Every running instance has **Connect (SSM)...** next to Connect (SSH) or (RDP). It
+opens a terminal (Terminal or iTerm, as set in Preferences) and runs:
+
+```
+aws ssm start-session --target <instance-id> --region <region> [--profile <profile>]
+```
+
+This uses the AWS CLI's own credentials, not the access key you gave Elastics (which
+is never put in the command, where it would end up in shell history). Set the
+profile under **AWS CLI profile** in Preferences > Connections, or per account in
+the account sheet; leave it empty to use the AWS CLI's default (`AWS_PROFILE` or
+`default`).
+
+You need:
+
+- [AWS CLI v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+  and the [Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html),
+  both on the `PATH` of your login shell (the one the terminal opens)
+- An instance that is managed by Systems Manager (SSM Agent running, and an
+  instance profile such as `AmazonSSMManagedInstanceCore`). Elastics doesn't check
+  this; for an unmanaged instance the error appears in the terminal.
+- For the AWS CLI profile's user or role, permission to start and end sessions:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "ssm:StartSession",
+      "Resource": [
+        "arn:aws:ec2:*:*:instance/*",
+        "arn:aws:ssm:*:*:document/SSM-SessionManagerRunShell"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": "ssm:TerminateSession",
+      "Resource": "arn:aws:ssm:*:*:session/${aws:userid}-*"
+    }
+  ]
+}
+```
+
+Narrow `instance/*` to particular instances (or add a tag condition) as needed.
 
 ## AWS permissions
 

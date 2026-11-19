@@ -23,6 +23,7 @@ extern NSString *const kAccountDidChangeNotification;
 	NSString			*_sshUserName;
 	NSUInteger			_sshPort;
     NSString            *_sshOptions;
+    NSString            *_awsProfile;
 	SecKeychainItemRef	_itemRef;
 }
 
@@ -33,7 +34,8 @@ extern NSString *const kAccountDidChangeNotification;
   sshPrivateKeyFile:(NSString *)sshPrivateKeyFile
         sshUserName:(NSString *)sshUserName
             sshPort:(NSUInteger)sshPort
-         sshOptions:(NSString *)sshOptions;
+         sshOptions:(NSString *)sshOptions
+         awsProfile:(NSString *)awsProfile;
 
 + (id)accountWithKeychainItemRef:(SecKeychainItemRef)itemRef;
 
@@ -44,7 +46,8 @@ extern NSString *const kAccountDidChangeNotification;
 sshPrivateKeyFile:(NSString *)sshPrivateKeyFile
      sshUserName:(NSString *)sshUserName
          sshPort:(NSUInteger)sshPort
-      sshOptions:(NSString *)sshOptions;
+      sshOptions:(NSString *)sshOptions
+      awsProfile:(NSString *)awsProfile;
 
 - (id)initWithKeychainItemRef:(SecKeychainItemRef)itemRef;
 
@@ -60,6 +63,7 @@ sshPrivateKeyFile:(NSString *)sshPrivateKeyFile
 @property (nonatomic, copy) NSString *sshUserName;
 @property (nonatomic, assign) NSUInteger sshPort;
 @property (nonatomic, copy) NSString *sshOptions;
+@property (nonatomic, copy) NSString *awsProfile;      // AWS CLI profile for SSM sessions; nil = AWS CLI default
 @property (nonatomic, readonly) SecKeychainItemRef itemRef;
 
 @property (nonatomic, readonly) NSString *title;

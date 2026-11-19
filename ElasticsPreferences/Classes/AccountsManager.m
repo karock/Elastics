@@ -113,10 +113,12 @@
         [_accounts removeAllObjects];
         [_accounts addObject:[Account accountWithID:0 name:@"Example Corp" accessKeyId:@"AKIAIOSFODNN7EXAMPLE"
                                     secretAccessKey:@"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-                                  sshPrivateKeyFile:@"~/.ssh/example.pem" sshUserName:@"ec2-user" sshPort:0 sshOptions:nil]];
+                                  sshPrivateKeyFile:@"~/.ssh/example.pem" sshUserName:@"ec2-user" sshPort:0 sshOptions:nil
+                                         awsProfile:@"example"]];
         [_accounts addObject:[Account accountWithID:1 name:@"Example Corp (Sandbox)" accessKeyId:@"AKIAI44QH8DHBEXAMPLE"
                                     secretAccessKey:@"je7MtGbClwBF/2Zp9Utk/h3yCo8nvbEXAMPLEKEY"
-                                  sshPrivateKeyFile:nil sshUserName:@"ubuntu" sshPort:0 sshOptions:nil]];
+                                  sshPrivateKeyFile:nil sshUserName:@"ubuntu" sshPort:0 sshOptions:nil
+                                         awsProfile:nil]];
         return;
     }
 
@@ -163,7 +165,8 @@ static NSString *const kAccountsImportedLegacyKey = @"importedLegacyAccounts";
                                        sshPrivateKeyFile:oldAccount.sshPrivateKeyFile
                                              sshUserName:oldAccount.sshUserName
                                                  sshPort:oldAccount.sshPort
-                                              sshOptions:oldAccount.sshOptions];
+                                              sshOptions:oldAccount.sshOptions
+                                              awsProfile:nil];
             newAccount.defaultRegion = oldAccount.defaultRegion;
 
             OSStatus status = [newAccount save];
@@ -198,6 +201,7 @@ static NSString *const kAccountsImportedLegacyKey = @"importedLegacyAccounts";
                    sshUserName:(NSString *)sshUserName
                        sshPort:(NSUInteger)sshPort
                     sshOptions:(NSString *)sshOptions
+                    awsProfile:(NSString *)awsProfile
 {
 	// make new account id to be max(existing IDs) + 1
 	NSInteger __block maxAccountId = -1;
@@ -214,7 +218,8 @@ static NSString *const kAccountsImportedLegacyKey = @"importedLegacyAccounts";
 							   sshPrivateKeyFile:sshPrivateKeyFile
 									 sshUserName:sshUserName
                                          sshPort:sshPort
-                                      sshOptions:sshOptions];
+                                      sshOptions:sshOptions
+                                      awsProfile:awsProfile];
     
     OSStatus status = [newAccount save];
 
@@ -232,6 +237,7 @@ static NSString *const kAccountsImportedLegacyKey = @"importedLegacyAccounts";
                      sshUserName:(NSString *)sshUserName
                          sshPort:(NSUInteger)sshPort
                       sshOptions:(NSString *)sshOptions
+                      awsProfile:(NSString *)awsProfile
 {
     Account *account = [_accounts objectAtIndex:idx];
     
@@ -243,6 +249,7 @@ static NSString *const kAccountsImportedLegacyKey = @"importedLegacyAccounts";
     NSString *sshUserNameCopy = [account.sshUserName copy];
     NSUInteger sshPortCopy = account.sshPort;
     NSString *sshOptionsCopy = [account.sshOptions copy];
+    NSString *awsProfileCopy = [account.awsProfile copy];
 
     account.name = name;
     account.accessKeyID = accessKeyId;
@@ -251,6 +258,7 @@ static NSString *const kAccountsImportedLegacyKey = @"importedLegacyAccounts";
     account.sshUserName = sshUserName;
     account.sshPort = sshPort;
     account.sshOptions = sshOptions;
+    account.awsProfile = awsProfile;
 
     OSStatus status = [account save];
     
@@ -263,6 +271,7 @@ static NSString *const kAccountsImportedLegacyKey = @"importedLegacyAccounts";
         account.sshUserName = sshUserNameCopy;
         account.sshPort = sshPortCopy;
         account.sshOptions = sshOptionsCopy;
+        account.awsProfile = awsProfileCopy;
     }
     
     [nameCopy release];
@@ -271,6 +280,7 @@ static NSString *const kAccountsImportedLegacyKey = @"importedLegacyAccounts";
     [sshPrivateKeyFileCopy release];
     [sshUserNameCopy release];
     [sshOptionsCopy release];
+    [awsProfileCopy release];
 
     return status;
 }

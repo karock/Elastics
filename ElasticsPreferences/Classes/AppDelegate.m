@@ -40,6 +40,7 @@ static NSString *const kElasticsSendFeedbackURL = @"https://github.com/karock/El
 - (void)preferencesShouldTerminate:(NSNotification *)notification;
 - (void)buildRegionsPane;
 - (void)buildGroupingControls;
+- (void)buildAwsProfileControls;
 - (void)groupingModeAction:(id)sender;
 - (void)updateGroupingControls;
 - (void)updateRegionCheckboxes;
@@ -52,6 +53,7 @@ static NSString *const kElasticsSendFeedbackURL = @"https://github.com/karock/El
 - (NSString *)_accountPanelSshUserNameValue;
 - (NSUInteger)_accountPanelSshPortValue;
 - (NSString *)_accountPanelSshOptionsValue;
+- (NSString *)_accountPanelAwsProfileValue;
 
 @end
 
@@ -64,6 +66,8 @@ static NSString *const kElasticsSendFeedbackURL = @"https://github.com/karock/El
     NSTextField *_groupingPrefixesField;
     NSTextField *_groupingTagKeyField;
     NSTextField *_groupingHintLabel;
+    // "AWS CLI profile" field in the account sheet (owned by the sheet)
+    NSTextField *_accountPanelAwsProfileField;
 }
 
 @synthesize window = _window;
@@ -141,6 +145,7 @@ static NSString *const kElasticsSendFeedbackURL = @"https://github.com/karock/El
 	[_accountsTableView	setDoubleAction:@selector(editAccountAction:)];
 	[self buildRegionsPane];
 	[self buildGroupingControls];
+	[self buildAwsProfileControls];
 	[self showPreferencePane:kGeneralPaneIndex animated:NO];
 	
 	NSNotificationCenter *notificationCenter = [NSNotificationCenter defaultCenter];
@@ -356,6 +361,13 @@ const NSTimeInterval kPreferenceChangeNotificationDelay = .5;
 #pragma mark -
 #pragma mark Accounts sheet
 
+// The account sheet's AWS CLI profile placeholder: the profile set in Preferences, if any
+static NSString *AppDelegateAwsProfilePlaceholder(void)
+{
+	NSString *defaultProfile = [[NSUserDefaults standardUserDefaults] awsProfile];
+	return [defaultProfile length] ? defaultProfile : @"AWS CLI default";
+}
+
 #define ACCOUNT_SHEET_RETURNCODE_SAVE		1
 #define ACCOUNT_SHEET_RETURNCODE_CANCEL		0
 
@@ -399,6 +411,11 @@ enum {
 	return [[_accountPanelSshOptionsField stringValue] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
 }
 
+- (NSString *)_accountPanelAwsProfileValue
+{
+	return [[_accountPanelAwsProfileField stringValue] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+}
+
 - (IBAction)accountSheetSaveAction:(id)sender
 {
 	[NSApp endSheet:_accountPanel returnCode:ACCOUNT_SHEET_RETURNCODE_SAVE];
@@ -425,7 +442,8 @@ enum {
                                             sshPrivateKeyFile:[self _accountPanelSshPrivateKeyFileValue]
                                                   sshUserName:[self _accountPanelSshUserNameValue]
                                                       sshPort:[self _accountPanelSshPortValue]
-                                                   sshOptions:[self _accountPanelSshOptionsValue]];
+                                                   sshOptions:[self _accountPanelSshOptionsValue]
+                                                   awsProfile:[self _accountPanelAwsProfileValue]];
 				break;
 			}
 				
@@ -440,7 +458,8 @@ enum {
                                                   sshPrivateKeyFile:[self _accountPanelSshPrivateKeyFileValue]
                                                         sshUserName:[self _accountPanelSshUserNameValue]
                                                             sshPort:[self _accountPanelSshPortValue]
-                                                         sshOptions:[self _accountPanelSshOptionsValue]];
+                                                         sshOptions:[self _accountPanelSshOptionsValue]
+                                                         awsProfile:[self _accountPanelAwsProfileValue]];
 				}
 				break;
 			}
@@ -496,6 +515,8 @@ enum {
 	[_accountPanelSshUserNameField.cell setPlaceholderString:defaultSshUserName ? defaultSshUserName : @"root"];
     [_accountPanelSshPortField.cell setPlaceholderString:defaultSshPort > 0 ? [NSString stringWithFormat:@"%zd", defaultSshPort] : @"22"];
     [_accountPanelSshOptionsField.cell setPlaceholderString:defaultSshOptions ? defaultSshOptions : @""];
+    [_accountPanelAwsProfileField setStringValue:@""];
+    [_accountPanelAwsProfileField.cell setPlaceholderString:AppDelegateAwsProfilePlaceholder()];
 
 	[_accountPanelSaveButton setEnabled:NO];
 	[_accountPanel makeFirstResponder:_accountPanelAccessKeyIdField];
@@ -534,6 +555,8 @@ enum {
 		[_accountPanelSshUserNameField.cell setPlaceholderString:defaultSshUserName ? defaultSshUserName : @"root"];
 		[_accountPanelSshPortField.cell setPlaceholderString:defaultSshPort > 0 ? [NSString stringWithFormat:@"%zd", defaultSshPort] : @"22"];
         [_accountPanelSshOptionsField.cell setPlaceholderString:defaultSshOptions ? defaultSshOptions : @""];
+        [_accountPanelAwsProfileField setStringValue:account.awsProfile ? account.awsProfile : @""];
+        [_accountPanelAwsProfileField.cell setPlaceholderString:AppDelegateAwsProfilePlaceholder()];
 
 		[_accountPanelSaveButton setEnabled:YES];
 		[_accountPanel makeFirstResponder:_accountPanelAccessKeyIdField];
@@ -878,6 +901,86 @@ static NSTextField *AppDelegateLabel(NSString *text, NSRect frame, BOOL small)
 - (IBAction)sendFeeedbackAction:(id)sender
 {
 	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:kElasticsSendFeedbackURL]];
+}
+
+#pragma mark - AWS CLI profile (Connections pane, account sheet)
+
+// Adds a label and text field row just below an existing row (found by its label's
+// title) in a nib-built view, moving that row and everything above it up to make room.
+// The new label and field copy the existing ones' frames, alignment and fonts. The view
+// grows by one row: a pane by its frame, a window's content view by the window.
+static NSTextField *AppDelegateAddRowBelow(NSView *container, NSWindow *window, NSString *anchorTitle, NSString *title)
+{
+	NSTextField *anchorLabel = nil, *anchorField = nil;
+	for (NSView *view in [container subviews]) {
+		if ([view isKindOfClass:[NSTextField class]] && ![(NSTextField *)view isEditable]
+			&& [[(NSTextField *)view stringValue] isEqualToString:anchorTitle])
+			anchorLabel = (NSTextField *)view;
+	}
+	if (anchorLabel) {
+		for (NSView *view in [container subviews]) {
+			if ([view isKindOfClass:[NSTextField class]] && [(NSTextField *)view isEditable]
+				&& fabs(NSMidY([view frame]) - NSMidY([anchorLabel frame])) < 6.f)
+				anchorField = (NSTextField *)view;
+		}
+	}
+	if (!anchorLabel || !anchorField) {
+		NSLog(@"Elastics Preferences: no \"%@\" row to add \"%@\" below", anchorTitle, title);
+		return nil;
+	}
+
+	NSRect labelFrame = [anchorLabel frame], fieldFrame = [anchorField frame];
+	CGFloat rowHeight = NSHeight(fieldFrame) + 8.f;   // the nib's rows are 28-32 pt apart
+	CGFloat rowBottom = MIN(NSMinY(labelFrame), NSMinY(fieldFrame)) - 4.f;
+
+	[container setAutoresizesSubviews:NO];
+	if (window) {
+		NSSize contentSize = [container frame].size;
+		[window setContentSize:NSMakeSize(contentSize.width, contentSize.height + rowHeight)];
+	}
+	else {
+		NSSize size = [container frame].size;
+		[container setFrameSize:NSMakeSize(size.width, size.height + rowHeight)];
+	}
+	for (NSView *view in [container subviews]) {
+		NSPoint origin = [view frame].origin;
+		if (origin.y >= rowBottom)
+			[view setFrameOrigin:NSMakePoint(origin.x, origin.y + rowHeight)];
+	}
+	[container setAutoresizesSubviews:YES];
+
+	NSTextField *label = AppDelegateLabel(title, labelFrame, NO);
+	[label setAlignment:[anchorLabel alignment]];
+	[label setFont:[anchorLabel font]];
+	[label setTextColor:[anchorLabel textColor]];
+	[container addSubview:label];
+
+	NSTextField *field = [[[NSTextField alloc] initWithFrame:fieldFrame] autorelease];
+	[field setFont:[anchorField font]];
+	[field setNextKeyView:[anchorField nextKeyView]];
+	[anchorField setNextKeyView:field];
+	[container addSubview:field];
+	return field;
+}
+
+// "AWS CLI profile" for Connect (SSM): a default in the Connections pane and a
+// per-account one in the account sheet, each below its "Other SSH options" row.
+- (void)buildAwsProfileControls
+{
+	NSString *tooltip = @"The AWS CLI profile (from ~/.aws/config) that Connect (SSM) uses. Leave empty to use the AWS CLI's default.";
+
+	NSTextField *defaultField = AppDelegateAddRowBelow(_connectionsPane, nil, @"Other SSH options:", @"AWS CLI profile:");
+	if (defaultField) {
+		NSDictionary *options = [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:YES]
+															forKey:NSContinuouslyUpdatesValueBindingOption];
+		[defaultField bind:NSValueBinding toObject:[NSUserDefaultsController sharedUserDefaultsController]
+			   withKeyPath:@"values.awsProfile" options:options];
+		[[defaultField cell] setPlaceholderString:@"AWS CLI default"];
+		[defaultField setToolTip:tooltip];
+	}
+
+	_accountPanelAwsProfileField = AppDelegateAddRowBelow([_accountPanel contentView], _accountPanel, @"Other SSH options:", @"AWS CLI profile:");
+	[_accountPanelAwsProfileField setToolTip:tooltip];
 }
 
 @end

@@ -230,7 +230,9 @@ static NSString *ElasticsAppleScriptEscape(NSString *value)
 - (void)copyToPasteboardAction:(id)sender;
 - (NSString *)connectAddressForInstance:(EC2Instance *)instance;
 - (void)connectToInstanceWithSshAction:(id)sender;
+- (void)connectToInstanceWithSsmAction:(id)sender;
 - (void)connectToInstanceWithRdpAction:(id)sender;
+- (void)runCommandInTerminal:(NSString *)command;
 - (void)aboutAction:(id)sender;
 - (void)openAWSManagementConsoleAction:(id)sender;
 
@@ -1408,6 +1410,11 @@ static NSImage *_brImage;
 			[menu addItem:[self actionItemWithLabel:@"Connect (RDP)..." info:nil action:@selector(connectToInstanceWithRdpAction:)]];
 		else
 			[menu addItem:[self actionItemWithLabel:@"Connect (SSH)..." info:nil action:@selector(connectToInstanceWithSshAction:)]];
+
+		// Session Manager works for Linux and Windows alike (when the instance is managed)
+		NSMenuItem *ssmItem = [self actionItemWithLabel:@"Connect (SSM)..." info:nil action:@selector(connectToInstanceWithSsmAction:)];
+		[ssmItem setToolTip:@"Open an AWS Systems Manager session in the terminal (needs the AWS CLI and the Session Manager plugin)"];
+		[menu addItem:ssmItem];
 	}
 	else {
 		[menu addItem:[NSMenuItem separatorItem]];
@@ -1566,7 +1573,8 @@ static NSImage *_brImage;
 		if ([item isHidden] || [item isAlternate] || [item hasSubmenu])
 			continue;
 		SEL action = [item action];
-		if (action == @selector(connectToInstanceWithSshAction:) || action == @selector(connectToInstanceWithRdpAction:)
+		if (action == @selector(connectToInstanceWithSshAction:) || action == @selector(connectToInstanceWithSsmAction:)
+			|| action == @selector(connectToInstanceWithRdpAction:)
 			|| action == @selector(copyInstanceDetailsImageAction:) || action == @selector(copyInstanceDetailsTextAction:))
 			continue;
 		[items addObject:item];
@@ -2076,8 +2084,6 @@ static NSImage *_brImage;
 	NSMenuItem *menuItem = (NSMenuItem *)sender;
 	NSString *instanceId = [[menuItem menu] title];
 	EC2Instance *instance = [[DataSource sharedDataSource] instance:instanceId];
-	NSInteger terminalApplication = [[NSUserDefaults standardUserDefaults] terminalApplication];
-	BOOL isOpenInTerminalTab = [[NSUserDefaults standardUserDefaults] isOpenInTerminalTab];
 	
 	if (instance) {
 		Account *account = [_accountsManager accountWithId:[[NSUserDefaults standardUserDefaults] accountId]];
@@ -2126,18 +2132,58 @@ static NSImage *_brImage;
 		else
 			cmd = [cmd stringByAppendingFormat:@" %@", ElasticsShellQuote(instanceAddress)];
 
-		// the command goes inside AppleScript string literals below
-		NSString *scriptCmd = ElasticsAppleScriptEscape(cmd);
+		[self runCommandInTerminal:cmd];
+	}
+}
 
-		switch (terminalApplication) {
-			// use iTerm terminal
-			case kPreferencesTerminalApplicationiTerm:
+// AWS Systems Manager session: "aws ssm start-session" in the terminal, with the AWS CLI
+// profile set for the account (or in Preferences). The account's access keys are never
+// put in the command, where they would end up in shell history and scrollback.
+- (void)connectToInstanceWithSsmAction:(id)sender
+{
+	NSMenuItem *menuItem = (NSMenuItem *)sender;
+	NSString *instanceId = [[menuItem menu] title];
+	EC2Instance *instance = [[DataSource sharedDataSource] instance:instanceId];
+
+	if (instance) {
+		Account *account = [_accountsManager accountWithId:[[NSUserDefaults standardUserDefaults] accountId]];
+
+		NSString *awsProfile = nil;
+		if ([account.awsProfile length] > 0)
+			awsProfile = account.awsProfile;
+		else
+			awsProfile = [[NSUserDefaults standardUserDefaults] awsProfile];
+
+		NSString *cmd = [NSString stringWithFormat:@"aws ssm start-session --target %@ --region %@",
+						 ElasticsShellQuote(instance.instanceId),
+						 ElasticsShellQuote([[NSUserDefaults standardUserDefaults] awsRegion])];
+		if ([awsProfile length] > 0)
+			cmd = [cmd stringByAppendingFormat:@" --profile %@", ElasticsShellQuote(awsProfile)];
+
+		[self runCommandInTerminal:cmd];
+	}
+}
+
+// Runs a shell command in a new Terminal or iTerm window or tab, as set in Preferences.
+// The command is typed into the terminal as is: quote its values with ElasticsShellQuote.
+- (void)runCommandInTerminal:(NSString *)command
+{
+	NSInteger terminalApplication = [[NSUserDefaults standardUserDefaults] terminalApplication];
+	BOOL isOpenInTerminalTab = [[NSUserDefaults standardUserDefaults] isOpenInTerminalTab];
+	NSString *cmd = command;
+
+	// the command goes inside AppleScript string literals below
+	NSString *scriptCmd = ElasticsAppleScriptEscape(cmd);
+
+	switch (terminalApplication) {
+		// use iTerm terminal
+		case kPreferencesTerminalApplicationiTerm:
             {
                 NSString *new = nil;
                 NSString *old = nil;
 
-				if (isOpenInTerminalTab) {
-					// new iTerm tab
+			if (isOpenInTerminalTab) {
+				// new iTerm tab
 
                     // for iTerm 3+
                     new = [NSString stringWithFormat:
@@ -2177,8 +2223,8 @@ static NSImage *_brImage;
                            @"	end try",
                            scriptCmd, scriptCmd];
                 }
-				else {
-					// new iTerm window
+			else {
+				// new iTerm window
 
                     // for iTerm 3+
                     new = [NSString stringWithFormat:
@@ -2263,50 +2309,49 @@ static NSImage *_brImage;
                        @"\n"
                        @"run script fullScript",
                        new, old];
-				break;
+			break;
             }
 
-			// use Terminal terminal
-			default:
-				if (isOpenInTerminalTab) {
-					// new Terminal tab
-					
-					cmd = [NSString stringWithFormat:
-						   @"activate application \"Terminal\"\n"
-						   @"tell application \"System Events\"\n"
-						   @"	keystroke \"t\" using {command down}\n"
-						   @"end tell\n"
-						   @"tell application \"Terminal\"\n"
-						   @"	repeat with win in windows\n"
-						   @"	try\n"
-						   @"		if get frontmost of win is true then\n"
-						   @"			do script \"%@\" in (selected tab of win)\n"
-						   @"		end if\n"
-						   @"	end try\n"
-						   @"	end repeat\n"
-						   @"end tell",
-						   scriptCmd];
-				}
-				else {
-					// new Terminal window
-					
-					cmd = [NSString stringWithFormat:
-						   @"tell application \"Terminal\"\n"
-						   @"	do script \"%@\"\n"
-						   @"end tell",
-						   scriptCmd];
-				}
-				break;
-		}
-		
-		TBTrace(@"%@", cmd);
-
-		NSAppleScript *appleScript = [[[NSAppleScript alloc] initWithSource:cmd] autorelease];
-		NSDictionary *errorInfo = nil;
-		[appleScript executeAndReturnError:&errorInfo];
-
-		// TODO: handle errors
+		// use Terminal terminal
+		default:
+			if (isOpenInTerminalTab) {
+				// new Terminal tab
+				
+				cmd = [NSString stringWithFormat:
+					   @"activate application \"Terminal\"\n"
+					   @"tell application \"System Events\"\n"
+					   @"	keystroke \"t\" using {command down}\n"
+					   @"end tell\n"
+					   @"tell application \"Terminal\"\n"
+					   @"	repeat with win in windows\n"
+					   @"	try\n"
+					   @"		if get frontmost of win is true then\n"
+					   @"			do script \"%@\" in (selected tab of win)\n"
+					   @"		end if\n"
+					   @"	end try\n"
+					   @"	end repeat\n"
+					   @"end tell",
+					   scriptCmd];
+			}
+			else {
+				// new Terminal window
+				
+				cmd = [NSString stringWithFormat:
+					   @"tell application \"Terminal\"\n"
+					   @"	do script \"%@\"\n"
+					   @"end tell",
+					   scriptCmd];
+			}
+			break;
 	}
+	
+	TBTrace(@"%@", cmd);
+
+	NSAppleScript *appleScript = [[[NSAppleScript alloc] initWithSource:cmd] autorelease];
+	NSDictionary *errorInfo = nil;
+	[appleScript executeAndReturnError:&errorInfo];
+
+	// TODO: handle errors
 }
 
 - (void)connectToInstanceWithRdpAction:(id)sender

@@ -23,7 +23,8 @@
              sshPrivateKeyFile:(NSString *)sshPrivateKeyFile
                    sshUserName:(NSString *)sshUserName
                        sshPort:(NSUInteger)sshPort
-                    sshOptions:(NSString *)sshOptions;
+                    sshOptions:(NSString *)sshOptions
+                    awsProfile:(NSString *)awsProfile;
 
 - (OSStatus)updateAccountAtIndex:(NSUInteger)idx
                         withName:(NSString *)name
@@ -32,7 +33,8 @@
                sshPrivateKeyFile:(NSString *)sshPrivateKeyFile
                      sshUserName:(NSString *)sshUserName
                          sshPort:(NSUInteger)sshPort
-                      sshOptions:(NSString *)sshOptions;
+                      sshOptions:(NSString *)sshOptions
+                      awsProfile:(NSString *)awsProfile;
 
 - (void)removeAccountAtIndex:(NSUInteger)idx;
 

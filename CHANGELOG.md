@@ -3,6 +3,16 @@
 Releases of this fork (com.audiomack.Elastics). Versions before 1.7 are the
 original Elastics by Tundra Bot.
 
+## Unreleased
+
+- **Connect (SSM)** for every running instance, Linux or Windows, alongside
+  Connect (SSH) or (RDP). It runs `aws ssm start-session` in Terminal or iTerm,
+  using the AWS CLI's credentials (an **AWS CLI profile** can be set in Preferences
+  and per account); Elastics' own access key is never put in the command. Needs
+  the AWS CLI v2 and the Session Manager plugin. See "Connecting with Session
+  Manager (SSM)" in the README.
+- Fixed: the SSH user name of a newly added account wasn't saved.
+
 ## 1.9 (190)
 
 - **Instance name at the top of the details.** Each instance's details now start

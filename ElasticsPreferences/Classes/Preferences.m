@@ -60,6 +60,7 @@ static NSString *const kPreferencesSshPrivateKeyFileKey                     = @"
 static NSString *const kPreferencesSshUserNameKey                           = @"sshUserName";
 static NSString *const kPreferencesSshPortKey                               = @"sshPort";
 static NSString *const kPreferencesSshOptionsKey                            = @"sshOptions";
+static NSString *const kPreferencesAwsProfileKey                            = @"awsProfile";
 static NSString *const kPreferencesUsingPublicDNSKey                        = @"sshUsingPublicDNS";
 static NSString *const kPreferencesTerminalApplicationKey                   = @"terminalApplication";
 static NSString *const kPreferencesOpenInTerminalTabKey                     = @"openInTerminalTab";
@@ -355,6 +356,17 @@ static void PreferencesImportLegacyDomain(NSString *legacyDomain, NSString *doma
 {
     if (![self.sshOptions isEqualToString:value])
         [self setObject:value forKey:kPreferencesSshOptionsKey];
+}
+
+- (NSString *)awsProfile
+{
+    return [self stringForKey:kPreferencesAwsProfileKey];
+}
+
+- (void)setAwsProfile:(NSString *)value
+{
+    if (![self.awsProfile isEqualToString:value])
+        [self setObject:value forKey:kPreferencesAwsProfileKey];
 }
 
 - (BOOL)isUsingPublicDNS
