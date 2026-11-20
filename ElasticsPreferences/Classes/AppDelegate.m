@@ -54,6 +54,7 @@ static NSString *const kElasticsSendFeedbackURL = @"https://github.com/karock/El
 - (NSUInteger)_accountPanelSshPortValue;
 - (NSString *)_accountPanelSshOptionsValue;
 - (NSString *)_accountPanelAwsProfileValue;
+- (NSString *)_accountPanelSsmCommandValue;
 
 @end
 
@@ -68,6 +69,7 @@ static NSString *const kElasticsSendFeedbackURL = @"https://github.com/karock/El
     NSTextField *_groupingHintLabel;
     // "AWS CLI profile" field in the account sheet (owned by the sheet)
     NSTextField *_accountPanelAwsProfileField;
+    NSTextField *_accountPanelSsmCommandField;
 }
 
 @synthesize window = _window;
@@ -368,6 +370,13 @@ static NSString *AppDelegateAwsProfilePlaceholder(void)
 	return [defaultProfile length] ? defaultProfile : @"AWS CLI default";
 }
 
+// The account sheet's SSM login command placeholder: the command set in Preferences, if any
+static NSString *AppDelegateSsmCommandPlaceholder(void)
+{
+	NSString *defaultCommand = [[NSUserDefaults standardUserDefaults] ssmCommand];
+	return [defaultCommand length] ? defaultCommand : @"None (plain shell)";
+}
+
 #define ACCOUNT_SHEET_RETURNCODE_SAVE		1
 #define ACCOUNT_SHEET_RETURNCODE_CANCEL		0
 
@@ -411,6 +420,11 @@ enum {
 	return [[_accountPanelSshOptionsField stringValue] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
 }
 
+- (NSString *)_accountPanelSsmCommandValue
+{
+	return [[_accountPanelSsmCommandField stringValue] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+}
+
 - (NSString *)_accountPanelAwsProfileValue
 {
 	return [[_accountPanelAwsProfileField stringValue] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
@@ -443,7 +457,8 @@ enum {
                                                   sshUserName:[self _accountPanelSshUserNameValue]
                                                       sshPort:[self _accountPanelSshPortValue]
                                                    sshOptions:[self _accountPanelSshOptionsValue]
-                                                   awsProfile:[self _accountPanelAwsProfileValue]];
+                                                   awsProfile:[self _accountPanelAwsProfileValue]
+                                                   ssmCommand:[self _accountPanelSsmCommandValue]];
 				break;
 			}
 				
@@ -459,7 +474,8 @@ enum {
                                                         sshUserName:[self _accountPanelSshUserNameValue]
                                                             sshPort:[self _accountPanelSshPortValue]
                                                          sshOptions:[self _accountPanelSshOptionsValue]
-                                                         awsProfile:[self _accountPanelAwsProfileValue]];
+                                                         awsProfile:[self _accountPanelAwsProfileValue]
+                                                         ssmCommand:[self _accountPanelSsmCommandValue]];
 				}
 				break;
 			}
@@ -517,6 +533,8 @@ enum {
     [_accountPanelSshOptionsField.cell setPlaceholderString:defaultSshOptions ? defaultSshOptions : @""];
     [_accountPanelAwsProfileField setStringValue:@""];
     [_accountPanelAwsProfileField.cell setPlaceholderString:AppDelegateAwsProfilePlaceholder()];
+    [_accountPanelSsmCommandField setStringValue:@""];
+    [_accountPanelSsmCommandField.cell setPlaceholderString:AppDelegateSsmCommandPlaceholder()];
 
 	[_accountPanelSaveButton setEnabled:NO];
 	[_accountPanel makeFirstResponder:_accountPanelAccessKeyIdField];
@@ -557,6 +575,8 @@ enum {
         [_accountPanelSshOptionsField.cell setPlaceholderString:defaultSshOptions ? defaultSshOptions : @""];
         [_accountPanelAwsProfileField setStringValue:account.awsProfile ? account.awsProfile : @""];
         [_accountPanelAwsProfileField.cell setPlaceholderString:AppDelegateAwsProfilePlaceholder()];
+        [_accountPanelSsmCommandField setStringValue:account.ssmCommand ? account.ssmCommand : @""];
+        [_accountPanelSsmCommandField.cell setPlaceholderString:AppDelegateSsmCommandPlaceholder()];
 
 		[_accountPanelSaveButton setEnabled:YES];
 		[_accountPanel makeFirstResponder:_accountPanelAccessKeyIdField];
@@ -981,6 +1001,22 @@ static NSTextField *AppDelegateAddRowBelow(NSView *container, NSWindow *window, 
 
 	_accountPanelAwsProfileField = AppDelegateAddRowBelow([_accountPanel contentView], _accountPanel, @"Other SSH options:", @"AWS CLI profile:");
 	[_accountPanelAwsProfileField setToolTip:tooltip];
+
+	// SSM login command, below the profile
+	NSString *commandTooltip = @"A command Connect (SSM) runs at login on Linux instances, e.g. \"sudo -i -u ubuntu\". Leave empty for a plain shell. Hold Option on Connect (SSM) for a plain shell anyway.";
+
+	NSTextField *defaultCommandField = AppDelegateAddRowBelow(_connectionsPane, nil, @"AWS CLI profile:", @"SSM login command:");
+	if (defaultCommandField) {
+		NSDictionary *options = [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:YES]
+															forKey:NSContinuouslyUpdatesValueBindingOption];
+		[defaultCommandField bind:NSValueBinding toObject:[NSUserDefaultsController sharedUserDefaultsController]
+					  withKeyPath:@"values.ssmCommand" options:options];
+		[[defaultCommandField cell] setPlaceholderString:@"e.g. sudo -i -u ubuntu"];
+		[defaultCommandField setToolTip:commandTooltip];
+	}
+
+	_accountPanelSsmCommandField = AppDelegateAddRowBelow([_accountPanel contentView], _accountPanel, @"AWS CLI profile:", @"SSM login command:");
+	[_accountPanelSsmCommandField setToolTip:commandTooltip];
 }
 
 @end

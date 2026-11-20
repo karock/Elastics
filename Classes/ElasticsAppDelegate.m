@@ -258,6 +258,9 @@ static NSString *ElasticsAppleScriptEscape(NSString *value)
 - (NSString *)connectAddressForInstance:(EC2Instance *)instance;
 - (void)connectToInstanceWithSshAction:(id)sender;
 - (void)connectToInstanceWithSsmAction:(id)sender;
+- (void)connectToInstanceWithPlainSsmAction:(id)sender;
+- (NSString *)ssmCommandForInstance:(EC2Instance *)instance;
+- (void)startSsmSessionWithSender:(id)sender plainShell:(BOOL)plainShell;
 - (void)connectToInstanceWithRdpAction:(id)sender;
 - (void)runCommandInTerminal:(NSString *)command;
 - (void)aboutAction:(id)sender;
@@ -1450,8 +1453,23 @@ static NSImage *_brImage;
 
 		// Session Manager works for Linux and Windows alike (when the instance is managed)
 		NSMenuItem *ssmItem = [self actionItemWithLabel:@"Connect (SSM)..." info:nil action:@selector(connectToInstanceWithSsmAction:)];
-		[ssmItem setToolTip:@"Open an AWS Systems Manager session in the terminal (needs the AWS CLI and the Session Manager plugin)"];
-		[menu addItem:ssmItem];
+		NSString *ssmCommand = [self ssmCommandForInstance:instance];
+		if ([ssmCommand length]) {
+			// with a login command, Option gives a plain shell instead
+			[ssmItem setToolTip:[NSString stringWithFormat:@"Open an AWS Systems Manager session in the terminal, running \u201c%@\u201d (hold \u2325 for a plain shell)", ssmCommand]];
+			[ssmItem setKeyEquivalentModifierMask:0];
+			[menu addItem:ssmItem];
+
+			NSMenuItem *plainItem = [self actionItemWithLabel:@"Connect (SSM, plain shell)..." info:nil action:@selector(connectToInstanceWithPlainSsmAction:)];
+			[plainItem setToolTip:@"Open an AWS Systems Manager session in the terminal, without the login command"];
+			[plainItem setKeyEquivalentModifierMask:NSEventModifierFlagOption];
+			[plainItem setAlternate:YES];
+			[menu addItem:plainItem];
+		}
+		else {
+			[ssmItem setToolTip:@"Open an AWS Systems Manager session in the terminal (needs the AWS CLI and the Session Manager plugin)"];
+			[menu addItem:ssmItem];
+		}
 	}
 	else {
 		[menu addItem:[NSMenuItem separatorItem]];
@@ -1593,6 +1611,7 @@ static NSImage *_brImage;
 			continue;
 		SEL action = [item action];
 		if (action == @selector(connectToInstanceWithSshAction:) || action == @selector(connectToInstanceWithSsmAction:)
+			|| action == @selector(connectToInstanceWithPlainSsmAction:)
 			|| action == @selector(connectToInstanceWithRdpAction:)
 			|| action == @selector(copyInstanceDetailsImageAction:) || action == @selector(copyInstanceDetailsTextAction:))
 			continue;
@@ -2212,10 +2231,34 @@ static NSImage *_brImage;
 	}
 }
 
+// The command an SSM session runs at login: the account's, else the one in Preferences;
+// nil for a plain shell. Never for Windows instances (it's meant for a Linux shell).
+- (NSString *)ssmCommandForInstance:(EC2Instance *)instance
+{
+	if ([instance.platform isEqualToString:@"windows"])
+		return nil;
+	Account *account = [_accountsManager accountWithId:[[NSUserDefaults standardUserDefaults] accountId]];
+	NSString *command = [account.ssmCommand length] ? account.ssmCommand : [[NSUserDefaults standardUserDefaults] ssmCommand];
+	command = [command stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+	return [command length] ? command : nil;
+}
+
+- (void)connectToInstanceWithSsmAction:(id)sender
+{
+	[self startSsmSessionWithSender:sender plainShell:NO];
+}
+
+- (void)connectToInstanceWithPlainSsmAction:(id)sender
+{
+	[self startSsmSessionWithSender:sender plainShell:YES];
+}
+
 // AWS Systems Manager session: "aws ssm start-session" in the terminal, with the AWS CLI
 // profile set for the account (or in Preferences). The account's access keys are never
-// put in the command, where they would end up in shell history and scrollback.
-- (void)connectToInstanceWithSsmAction:(id)sender
+// put in the command, where they would end up in shell history and scrollback. With a
+// login command (and not plainShell), the session runs it via AWS-StartInteractiveCommand;
+// the parameters are passed as JSON (the CLI's shorthand syntax breaks on commas).
+- (void)startSsmSessionWithSender:(id)sender plainShell:(BOOL)plainShell
 {
 	NSMenuItem *menuItem = (NSMenuItem *)sender;
 	NSString *instanceId = [[menuItem menu] title];
@@ -2235,6 +2278,15 @@ static NSImage *_brImage;
 						 ElasticsShellQuote([[NSUserDefaults standardUserDefaults] awsRegion])];
 		if ([awsProfile length] > 0)
 			cmd = [cmd stringByAppendingFormat:@" --profile %@", ElasticsShellQuote(awsProfile)];
+
+		NSString *loginCommand = plainShell ? nil : [self ssmCommandForInstance:instance];
+		if ([loginCommand length] > 0) {
+			NSDictionary *parameters = [NSDictionary dictionaryWithObject:[NSArray arrayWithObject:loginCommand] forKey:@"command"];
+			NSData *json = [NSJSONSerialization dataWithJSONObject:parameters options:NSJSONWritingWithoutEscapingSlashes error:NULL];
+			NSString *jsonString = json ? [[[NSString alloc] initWithData:json encoding:NSUTF8StringEncoding] autorelease] : nil;
+			if (jsonString)
+				cmd = [cmd stringByAppendingFormat:@" --document-name AWS-StartInteractiveCommand --parameters %@", ElasticsShellQuote(jsonString)];
+		}
 
 		[self runCommandInTerminal:cmd];
 	}

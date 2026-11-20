@@ -79,6 +79,17 @@ profile under **AWS CLI profile** in Preferences > Connections, or per account i
 the account sheet; leave it empty to use the AWS CLI's default (`AWS_PROFILE` or
 `default`).
 
+To log in as a particular user (or run something else first), set an **SSM login
+command** in the same places, for example `sudo -i -u ubuntu`. Connect (SSM) then
+adds:
+
+```
+--document-name AWS-StartInteractiveCommand --parameters '{"command":["sudo -i -u ubuntu"]}'
+```
+
+The command applies to Linux instances only; Windows instances always get a plain
+session. Hold Option on Connect (SSM) for **Connect (SSM, plain shell)** to skip it.
+
 You need:
 
 - [AWS CLI v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
@@ -98,7 +109,8 @@ You need:
       "Action": "ssm:StartSession",
       "Resource": [
         "arn:aws:ec2:*:*:instance/*",
-        "arn:aws:ssm:*:*:document/SSM-SessionManagerRunShell"
+        "arn:aws:ssm:*:*:document/SSM-SessionManagerRunShell",
+        "arn:aws:ssm:*::document/AWS-StartInteractiveCommand"
       ]
     },
     {
@@ -110,6 +122,7 @@ You need:
 }
 ```
 
+The `AWS-StartInteractiveCommand` line is only needed for an SSM login command.
 Narrow `instance/*` to particular instances (or add a tag condition) as needed.
 
 ## AWS permissions

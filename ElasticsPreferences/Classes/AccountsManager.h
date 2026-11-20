@@ -24,7 +24,8 @@
                    sshUserName:(NSString *)sshUserName
                        sshPort:(NSUInteger)sshPort
                     sshOptions:(NSString *)sshOptions
-                    awsProfile:(NSString *)awsProfile;
+                    awsProfile:(NSString *)awsProfile
+                    ssmCommand:(NSString *)ssmCommand;
 
 - (OSStatus)updateAccountAtIndex:(NSUInteger)idx
                         withName:(NSString *)name
@@ -34,7 +35,8 @@
                      sshUserName:(NSString *)sshUserName
                          sshPort:(NSUInteger)sshPort
                       sshOptions:(NSString *)sshOptions
-                      awsProfile:(NSString *)awsProfile;
+                      awsProfile:(NSString *)awsProfile
+                      ssmCommand:(NSString *)ssmCommand;
 
 - (void)removeAccountAtIndex:(NSUInteger)idx;
 

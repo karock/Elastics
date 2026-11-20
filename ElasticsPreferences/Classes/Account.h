@@ -24,6 +24,7 @@ extern NSString *const kAccountDidChangeNotification;
 	NSUInteger			_sshPort;
     NSString            *_sshOptions;
     NSString            *_awsProfile;
+    NSString            *_ssmCommand;
 	SecKeychainItemRef	_itemRef;
 	OSStatus			_keychainStatus;
 }
@@ -36,7 +37,8 @@ extern NSString *const kAccountDidChangeNotification;
         sshUserName:(NSString *)sshUserName
             sshPort:(NSUInteger)sshPort
          sshOptions:(NSString *)sshOptions
-         awsProfile:(NSString *)awsProfile;
+         awsProfile:(NSString *)awsProfile
+         ssmCommand:(NSString *)ssmCommand;
 
 + (id)accountWithKeychainItemRef:(SecKeychainItemRef)itemRef;
 
@@ -48,7 +50,8 @@ sshPrivateKeyFile:(NSString *)sshPrivateKeyFile
      sshUserName:(NSString *)sshUserName
          sshPort:(NSUInteger)sshPort
       sshOptions:(NSString *)sshOptions
-      awsProfile:(NSString *)awsProfile;
+      awsProfile:(NSString *)awsProfile
+      ssmCommand:(NSString *)ssmCommand;
 
 - (id)initWithKeychainItemRef:(SecKeychainItemRef)itemRef;
 
@@ -65,6 +68,7 @@ sshPrivateKeyFile:(NSString *)sshPrivateKeyFile
 @property (nonatomic, assign) NSUInteger sshPort;
 @property (nonatomic, copy) NSString *sshOptions;
 @property (nonatomic, copy) NSString *awsProfile;      // AWS CLI profile for SSM sessions; nil = AWS CLI default
+@property (nonatomic, copy) NSString *ssmCommand;      // run at SSM login (Linux), e.g. "sudo -i -u ubuntu"; nil = Preferences default
 @property (nonatomic, readonly) SecKeychainItemRef itemRef;
 @property (nonatomic, readonly) OSStatus keychainStatus;   // result of reading the keys from the keychain (noErr if read)
 
