@@ -3,7 +3,7 @@
 Releases of this fork (com.audiomack.Elastics). Versions before 1.7 are the
 original Elastics by Tundra Bot.
 
-## Unreleased
+## 1.11 (210)
 
 - **SSM login command**: set a command such as `sudo -i -u ubuntu` (in Preferences
   > Connections, or per account) and Connect (SSM) runs it at login on Linux
